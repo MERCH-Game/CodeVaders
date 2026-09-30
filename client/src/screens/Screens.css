@@ -1,0 +1,115 @@
+.game-screen {
+  position: relative;
+  display: flex;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  flex: 0 0 auto;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background-color: #120921;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 45%), 0 0 0 6px rgb(255 255 255 / 5%);
+  color: #fff;
+  isolation: isolate;
+}
+
+.game-screen::before {
+  position: absolute;
+  z-index: -1;
+  background: linear-gradient(180deg, rgb(9 4 24 / 35%), rgb(9 4 24 / 8%) 45%, rgb(9 4 24 / 65%));
+  content: '';
+  inset: 0;
+}
+
+.screen-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9% 8% 8%;
+  text-align: center;
+}
+
+.screen-eyebrow {
+  margin: 0;
+  color: #f4a8ff;
+  font-size: clamp(9px, 2.7vw, 12px);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.screen-title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(30px, 9vw, 46px);
+  font-weight: 950;
+  line-height: 0.92;
+  text-shadow: 0 4px 0 #581b84, 0 8px 24px rgb(0 0 0 / 60%);
+  text-transform: uppercase;
+}
+
+.screen-copy {
+  margin: 8px 0 0;
+  color: rgb(255 255 255 / 82%);
+  font-size: clamp(11px, 3.2vw, 14px);
+  line-height: 1.4;
+}
+
+.game-button {
+  min-height: 46px;
+  width: 100%;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  background: #f0c43a;
+  box-shadow: 0 5px 0 #9c5420;
+  color: #24102c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+
+.game-button:hover {
+  filter: brightness(1.08);
+}
+
+.game-button:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #9c5420;
+}
+
+.game-button:focus-visible {
+  outline: 3px solid #f4a8ff;
+  outline-offset: 3px;
+}
+
+.screen-actions {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+}
+
+@media (max-height: 520px) {
+  .game-screen {
+    width: min(34vw, calc((100svh - 82px) * 0.5625));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
