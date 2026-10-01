@@ -1,40 +1,73 @@
-.score-panel {
-  width: 100%;
-  padding: 18px 14px;
-  border: 1px solid rgb(255 255 255 / 50%);
-  border-radius: 9px;
-  background: rgb(19 7 38 / 78%);
+/* GameOverScreen.css
+   Supplements Tailwind with:
+   – Google Font (Press Start 2P)
+   – @keyframes for the flicker
+   – screen-content override (neutralise inherited space-between)
+   – Score panel: container-type + aspect-ratio + cqi font sizes
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Neutralise the inherited justify-content: space-between from Screens.css
+   Our own flex column (justify-evenly) is the sole layout driver. */
+.game-over-layout .screen-content {
+  display: contents;
 }
 
-.score-label {
-  display: block;
-  margin-bottom: 5px;
-  color: #f4a8ff;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+/* ── Score panel ────────────────────────────────────────── */
+.go-score-panel {
+  /* Perfect square */
+  aspect-ratio: 1 / 1;
+  /* Establish a container so child fonts scale relative to the box width */
+  container-type: inline-size;
+  box-sizing: border-box;
 }
 
-.score-value {
-  display: block;
-  color: #ffe36e;
-  font-size: clamp(32px, 10vw, 48px);
-  font-weight: 950;
+/* "FINAL SCORE" label — 9% of the box width */
+.go-score-label {
+  font-family: 'Press Start 2P', monospace;
+  /* Use cqi: scales to the content area (box-sizing: border-box, so after padding) */
+  font-size: 9cqi;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* Score number — 24% of the box width */
+/* At w-[55%] of a ~320px screen → box ≈ 176px → 24cqi ≈ 42px                 */
+/* "1,240" in Press Start 2P at 42px ≈ 5 chars × ~28px = 140px — fits in 160px content area */
+.go-score-value {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 24cqi;
   line-height: 1;
-  text-shadow: 0 3px 0 #9c5420;
+  text-align: center;
+  /* Safety: if an extreme score somehow overflows, break it */
+  word-break: break-all;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
-.result-badge {
-  display: grid;
-  width: 68px;
-  height: 68px;
-  place-items: center;
-  border: 2px solid #ffe36e;
-  border-radius: 50%;
-  background: rgb(20 6 39 / 78%);
-  color: #ffe36e;
-  font-size: 30px;
-  font-weight: 900;
-  box-shadow: 0 0 25px rgb(244 168 255 / 35%);
+/* ── Flicker animation for game_over.png ─────────────────── */
+@keyframes go-flicker {
+
+  0%,
+  89%,
+  100% {
+    opacity: 1;
+  }
+
+  91% {
+    opacity: 0.6;
+  }
+
+  93% {
+    opacity: 1;
+  }
+
+  95% {
+    opacity: 0.35;
+  }
+
+  97% {
+    opacity: 1;
+  }
 }
