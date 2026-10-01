@@ -7,14 +7,14 @@ import saveIcon from '../../assets/icons/save_icon.png'
 import homeIcon from '../../assets/icons/home.png'
 import IconButton from '../../components/arcade/IconButton.jsx'
 
-export default function GameOverScreen({ onRestart, onSave, onHome, score = 1240 }) {
+export default function GameOverScreen({ onRestart, onSave, onHome, score = 9999 }) {
   const sfxRef = useRef(null)
 
   useEffect(() => {
     const sfx = new window.Audio(gameOverSound)
     sfx.volume = 0.6
     sfxRef.current = sfx
-    sfx.play().catch(() => {})
+    sfx.play().catch(() => { })
 
     return () => {
       sfx.pause()
@@ -45,8 +45,11 @@ export default function GameOverScreen({ onRestart, onSave, onHome, score = 1240
         <span className="font-pixel text-arcade-pink uppercase tracking-wider text-center" style={{ fontSize: '8cqi', lineHeight: 1.7 }}>
           Final Score
         </span>
-        <strong className="font-pixel text-arcade-yellow leading-none text-center whitespace-nowrap [text-shadow:0_3px_0_#9c5420,0_0_20px_rgba(255,200,60,0.55)] max-w-full" style={{ fontSize: '20cqi' }}>
-          {score.toLocaleString()}
+        <strong
+          className="font-pixel text-arcade-yellow leading-none text-center whitespace-nowrap [text-shadow:0_3px_0_#9c5420,0_0_20px_rgba(255,200,60,0.55)] max-w-full"
+          style={{ fontSize: `clamp(8cqi, ${110 / Math.max((typeof score === 'number' ? score.toLocaleString() : String(score)).length, 1)}cqi, 20cqi)` }}
+        >
+          {typeof score === 'number' ? score.toLocaleString() : score}
         </strong>
       </div>
 
