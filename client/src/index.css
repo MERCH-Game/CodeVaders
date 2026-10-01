@@ -1,2 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap');
 @import "tailwindcss";
+@import "./styles/arcade.css";
 
+/* Tailwind v4 theme customizations */
+@theme {
+  --color-arcade-bg: #05030D;
+  --color-arcade-panel: #0D0718;
+  --color-arcade-purple: #7B2CFF;
+  --color-arcade-pink: #F4A8FF;
+  --color-arcade-blue: #3B82FF;
+  --color-arcade-yellow: #FFE36E;
+  --color-arcade-red: #FF3B4E;
+  
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-arcade-bg);
+  color: white;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
