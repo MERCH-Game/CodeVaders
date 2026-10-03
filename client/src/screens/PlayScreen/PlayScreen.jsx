@@ -1,21 +1,92 @@
-import React, { useState } from 'react'
-import commonBug from '../../assets/images/common_bug.png'
-import criticalBug from '../../assets/images/critical_bug.png'
+import React, { useEffect, useRef, useState } from 'react'
 import playerLinux from '../../assets/images/player_linux.png'
-import ArcadeButton from '../../components/arcade/ArcadeButton.jsx'
 import GameHUD from '../../components/game/GameHUD.jsx'
 
 import closeIcon from '../../assets/icons/close.png'
 import muteIcon from '../../assets/icons/mute.png'
 import unmuteIcon from '../../assets/icons/unmute.png'
 import homeIcon from '../../assets/icons/home.png'
+import moveLeftIcon from '../../assets/icons/move_left.png'
+import moveRightIcon from '../../assets/icons/move_right.png'
 
 export default function PlayScreen({ onFinish }) {
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
+  const [playerPosition, setPlayerPosition] = useState(50)
+  const playfieldRef = useRef(null)
+  const playerRef = useRef(null)
+  const directionRef = useRef(0)
+  const movementFrame = useRef(null)
+  const previousFrameTime = useRef(null)
+  const playerPositionRef = useRef(playerPosition)
   const lives = 3 // Assuming static for now as per original code
 
   const toggleMute = () => setIsMuted(!isMuted)
+  const getHorizontalBounds = (playfieldWidth, playerWidth) => {
+    if (!playfieldWidth || !playerRef.current) return { left: 0, right: 100 }
+
+    const emSize = Number.parseFloat(window.getComputedStyle(playerRef.current).fontSize)
+    return {
+      left: (playerWidth / 2 + emSize * 1.4) / playfieldWidth * 100,
+      right: 100 - (playerWidth / 2 + emSize * 1.3) / playfieldWidth * 100,
+    }
+  }
+
+  const moveFrame = (timestamp) => {
+    if (!directionRef.current) return
+
+    if (previousFrameTime.current !== null) {
+      const elapsed = Math.min((timestamp - previousFrameTime.current) / 1000, 0.05)
+      const playfieldWidth = playfieldRef.current?.clientWidth ?? 0
+      const playerWidth = playerRef.current?.offsetWidth ?? 0
+      if (playfieldWidth > 0) {
+        const bounds = getHorizontalBounds(playfieldWidth, playerWidth)
+        const nextPosition = playerPositionRef.current
+          + (directionRef.current * 252 * elapsed / playfieldWidth) * 100
+        const boundedPosition = Math.max(bounds.left, Math.min(bounds.right, nextPosition))
+
+        playerPositionRef.current = boundedPosition
+        setPlayerPosition(boundedPosition)
+      }
+    }
+
+    previousFrameTime.current = timestamp
+    movementFrame.current = window.requestAnimationFrame(moveFrame)
+  }
+
+  const startMoving = (event, direction) => {
+    event.preventDefault()
+    if (movementFrame.current !== null) window.cancelAnimationFrame(movementFrame.current)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    directionRef.current = direction
+    previousFrameTime.current = null
+    movementFrame.current = window.requestAnimationFrame(moveFrame)
+  }
+  const stopMoving = () => {
+    directionRef.current = 0
+    previousFrameTime.current = null
+    if (movementFrame.current !== null) {
+      window.cancelAnimationFrame(movementFrame.current)
+      movementFrame.current = null
+    }
+  }
+
+  const handleKeyboardMove = (event, direction) => {
+    if (event.detail === 0) {
+      const playfieldWidth = playfieldRef.current?.clientWidth ?? 0
+      const playerWidth = playerRef.current?.offsetWidth ?? 0
+      const bounds = getHorizontalBounds(playfieldWidth, playerWidth)
+      playerPositionRef.current = Math.max(
+        bounds.left,
+        Math.min(bounds.right, playerPositionRef.current + direction * 5),
+      )
+      setPlayerPosition(playerPositionRef.current)
+    }
+  }
+
+  useEffect(() => () => {
+    if (movementFrame.current !== null) window.cancelAnimationFrame(movementFrame.current)
+  }, [])
 
   return (
     <div className="flex flex-col w-full h-full relative">
@@ -23,29 +94,46 @@ export default function PlayScreen({ onFinish }) {
       <GameHUD time="00:42" lives={lives} onMenuClick={() => setIsPaused(true)} />
 
       {/* Playfield (Middle) */}
-      <div className="flex-1 relative w-full overflow-hidden flex flex-col items-center justify-center">
-        {/* Placeholder arrangement matching original logic */}
-        <div className="absolute top-[20%] left-[15%] w-[25%] animate-flicker">
-          <img src={commonBug} alt="Common bug" className="w-full object-contain drop-shadow-[0_0_10px_rgba(255,59,78,0.5)]" />
-        </div>
-        <div className="absolute top-[15%] right-[10%] w-[35%] animate-neon">
-          <img src={criticalBug} alt="Critical bug" className="w-full object-contain drop-shadow-[0_0_15px_rgba(244,168,255,0.7)]" />
-        </div>
-        <div className="absolute bottom-[10%] w-[30%]">
+      <div ref={playfieldRef} className="flex-1 relative w-full overflow-hidden flex flex-col items-center justify-center">
+        <div
+          ref={playerRef}
+          className="absolute bottom-0 w-[3em]"
+          style={{ left: `${playerPosition}%`, transform: 'translateX(-50%)' }}
+        >
           <img src={playerLinux} alt="Player character" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)]" />
         </div>
       </div>
 
       {/* Controls (Bottom) */}
-      <div className="p-[6%] pb-[8%] flex flex-col items-center gap-4 bg-gradient-to-t from-arcade-bg to-transparent">
-        <p className="font-sans font-bold text-[14px] text-white/80 text-center uppercase tracking-widest">
-          Tap the bugs to defend your merch
-        </p>
-        <div className="w-[80%]">
-          <ArcadeButton onClick={onFinish}>
-            End Round
-          </ArcadeButton>
-        </div>
+      <div className="flex w-full items-center justify-between px-6 pb-6 pt-3 bg-gradient-to-t from-arcade-bg to-transparent">
+        <button
+          type="button"
+          aria-label="Move player left"
+          onPointerDown={(event) => startMoving(event, -1)}
+          onPointerUp={stopMoving}
+          onPointerCancel={stopMoving}
+          onLostPointerCapture={stopMoving}
+          onBlur={stopMoving}
+          onClick={(event) => handleKeyboardMove(event, -1)}
+          onContextMenu={(event) => event.preventDefault()}
+          className="flex h-16 w-16 touch-none select-none items-center justify-center focus-visible:outline-3 focus-visible:outline-arcade-pink focus-visible:outline-offset-2 [-webkit-tap-highlight-color:transparent]"
+        >
+          <img src={moveLeftIcon} alt="" draggable="false" className="pointer-events-none h-10 w-10 select-none object-contain" />
+        </button>
+        <button
+          type="button"
+          aria-label="Move player right"
+          onPointerDown={(event) => startMoving(event, 1)}
+          onPointerUp={stopMoving}
+          onPointerCancel={stopMoving}
+          onLostPointerCapture={stopMoving}
+          onBlur={stopMoving}
+          onClick={(event) => handleKeyboardMove(event, 1)}
+          onContextMenu={(event) => event.preventDefault()}
+          className="flex h-16 w-16 touch-none select-none items-center justify-center focus-visible:outline-3 focus-visible:outline-arcade-pink focus-visible:outline-offset-2 [-webkit-tap-highlight-color:transparent]"
+        >
+          <img src={moveRightIcon} alt="" draggable="false" className="pointer-events-none h-10 w-10 select-none object-contain" />
+        </button>
       </div>
 
       {/* Pause Popup */}

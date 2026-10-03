@@ -5,7 +5,7 @@ export default function ArcadeFrame({ children }) {
     <div className="relative w-full h-full flex flex-col flex-1 isolate overflow-hidden bg-black text-white">
       {/* Background image */}
       <div 
-        className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat opacity-80"
+        className="pointer-events-none absolute inset-0 -z-20 select-none bg-cover bg-center bg-no-repeat opacity-80"
         style={{ backgroundImage: `url(${bgImage})` }}
       />
       
