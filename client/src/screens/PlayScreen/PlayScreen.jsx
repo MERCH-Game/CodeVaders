@@ -1,5 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import playerLinux from '../../assets/images/player_linux.png'
+import commonBugImg from '../../assets/images/common_bug.png'
+import commonBugBlastImg from '../../assets/images/common_bug_blast.png'
+import criticalBugImg from '../../assets/images/critical_bug.png'
+import criticalBugBlastImg from '../../assets/images/critical_bug_blast.png'
+import { GameEngine } from '../../game/GameEngine.js'
+import { EnemySpawner } from '../../game/EnemySpawner.js'
+
 import GameHUD from '../../components/game/GameHUD.jsx'
 
 import closeIcon from '../../assets/icons/close.png'
@@ -19,7 +26,9 @@ export default function PlayScreen({ onFinish }) {
   const movementFrame = useRef(null)
   const previousFrameTime = useRef(null)
   const playerPositionRef = useRef(playerPosition)
-  const lives = 3 // Assuming static for now as per original code
+  const [lives, setLives] = useState(3)
+  const canvasRef = useRef(null)
+  const engineRef = useRef(null)
 
   const toggleMute = () => setIsMuted(!isMuted)
   const getHorizontalBounds = (playfieldWidth, playerWidth) => {
@@ -88,16 +97,94 @@ export default function PlayScreen({ onFinish }) {
     if (movementFrame.current !== null) window.cancelAnimationFrame(movementFrame.current)
   }, [])
 
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // Load images
+    const images = {};
+    let loadedCount = 0;
+    const sources = {
+      commonBug: commonBugImg,
+      commonBugBlast: commonBugBlastImg,
+      criticalBug: criticalBugImg,
+      criticalBugBlast: criticalBugBlastImg
+    };
+
+    const initEngine = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        // Match container size
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+
+        const engine = new GameEngine(canvas, () => {
+            // On Player Hit
+            setLives(prev => {
+                const newLives = prev - 1;
+                if (newLives <= 0) {
+                    onFinish(); // End game
+                }
+                return newLives;
+            });
+        });
+        
+        engineRef.current = engine;
+        
+        // Setup EnemySpawner
+        const spawner = new EnemySpawner(images);
+        engine.setSpawner(spawner);
+
+        engine.start();
+    };
+
+    const keys = Object.keys(sources);
+    if (keys.length === 0) {
+        initEngine();
+    } else {
+        keys.forEach(key => {
+            const img = new Image();
+            img.src = sources[key];
+            img.onload = () => {
+                images[key] = img;
+                loadedCount++;
+                if (loadedCount === keys.length) {
+                    initEngine();
+                }
+            };
+        });
+    }
+
+    return () => {
+        if (engineRef.current) {
+            engineRef.current.stop();
+        }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (engineRef.current) {
+        if (isPaused) {
+            engineRef.current.stop();
+        } else {
+            engineRef.current.start();
+        }
+    }
+  }, [isPaused]);
+
+
   return (
     <div className="flex flex-col w-full h-full relative">
       {/* HUD (Top) */}
       <GameHUD time="00:42" lives={lives} onMenuClick={() => setIsPaused(true)} />
 
       {/* Playfield (Middle) */}
-      <div ref={playfieldRef} className="flex-1 relative w-full overflow-hidden flex flex-col items-center justify-center">
+      <div ref={playfieldRef} className="flex-1 relative w-full overflow-hidden flex flex-col items-center justify-center touch-none">
+        <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
         <div
           ref={playerRef}
-          className="absolute bottom-0 w-[3em]"
+          className="absolute bottom-0 w-[3em] pointer-events-none"
           style={{ left: `${playerPosition}%`, transform: 'translateX(-50%)' }}
         >
           <img src={playerLinux} alt="Player character" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)]" />
