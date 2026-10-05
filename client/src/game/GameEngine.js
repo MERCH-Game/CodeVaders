@@ -1,7 +1,14 @@
 import { PlayerProjectile } from './entities/PlayerProjectile.js';
+import { PlayerLaser } from './entities/PlayerLaser.js';
 
 export class GameEngine {
-    constructor(canvas, onPlayerHit, onPowerUpsChange = () => {}, onPowerUpCollected = () => {}) {
+    constructor(
+        canvas,
+        onPlayerHit,
+        onPowerUpsChange = () => {},
+        onPowerUpCollected = () => {},
+        onLaserFired = () => {},
+    ) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.entities = [];
@@ -12,11 +19,15 @@ export class GameEngine {
         this.onPlayerHit = onPlayerHit;
         this.onPowerUpsChange = onPowerUpsChange;
         this.onPowerUpCollected = onPowerUpCollected;
+        this.onLaserFired = onLaserFired;
         this.powerUps = [];
         this.spawner = null;
         this.powerUpSpawner = null;
         this.playerShooter = null;
         this.playerShootTimer = 0;
+        this.enemySlowTimer = 0;
+        this.cppPowerUpTimer = 0;
+        this.tripleShotTimer = 0;
     }
 
     setSpawner(spawner) {
@@ -59,7 +70,20 @@ export class GameEngine {
     consumePowerUp(index) {
         if (index < 0 || index >= this.powerUps.length) return;
 
+        const powerUp = this.powerUps[index];
+        if (!['cpp', 'python', 'java'].includes(powerUp.type)) return;
+
         this.powerUps.splice(index, 1);
+        if (powerUp.type === 'cpp') {
+            this.enemySlowTimer = 5;
+            this.cppPowerUpTimer = 5;
+        } else if (powerUp.type === 'python') {
+            this.entities = this.entities.filter(entity => entity.type !== 'player_laser');
+            this.addEntity(new PlayerLaser());
+            this.onLaserFired();
+        } else if (powerUp.type === 'java') {
+            this.tripleShotTimer = 5;
+        }
         this.onPowerUpsChange([...this.powerUps]);
     }
 
@@ -79,14 +103,26 @@ export class GameEngine {
     }
 
     update(dt) {
-        if (this.playerShooter) {
+        this.enemySlowTimer = Math.max(0, this.enemySlowTimer - dt);
+        this.cppPowerUpTimer = Math.max(0, this.cppPowerUpTimer - dt);
+        this.tripleShotTimer = Math.max(0, this.tripleShotTimer - dt);
+
+        const laserActive = this.entities.some(entity => entity.type === 'player_laser' && !entity.isDead);
+        if (this.playerShooter && !laserActive) {
             this.playerShootTimer += dt;
-            if (this.playerShootTimer >= 1.5) {
-                this.playerShootTimer -= 1.5;
-                this.addEntity(new PlayerProjectile(
-                    this.playerShooter.centerX - 3,
-                    this.playerShooter.y - 16,
-                ));
+            const fireInterval = this.cppPowerUpTimer > 0 ? 0.5 : 1.5;
+            if (this.playerShootTimer >= fireInterval) {
+                this.playerShootTimer -= fireInterval;
+                if (this.tripleShotTimer > 0) {
+                    this.addEntity(new PlayerProjectile(this.playerShooter.centerX - 11, this.playerShooter.y - 16, -90));
+                    this.addEntity(new PlayerProjectile(this.playerShooter.centerX - 3, this.playerShooter.y - 16));
+                    this.addEntity(new PlayerProjectile(this.playerShooter.centerX + 5, this.playerShooter.y - 16, 90));
+                } else {
+                    this.addEntity(new PlayerProjectile(
+                        this.playerShooter.centerX - 3,
+                        this.playerShooter.y - 16,
+                    ));
+                }
             }
         }
 
@@ -102,7 +138,10 @@ export class GameEngine {
         for (let i = this.entities.length - 1; i >= 0; i--) {
             const entity = this.entities[i];
             if (entity.update) {
-                entity.update(dt, this);
+                const entityDt = entity.type === 'enemy' && this.enemySlowTimer > 0
+                    ? dt * 0.5
+                    : dt;
+                entity.update(entityDt, this);
             }
             if (entity.isDead) {
                 this.entities.splice(i, 1);
@@ -117,6 +156,7 @@ export class GameEngine {
         const enemies = this.entities.filter(e => e.type === 'enemy');
         const player = this.entities.find(e => e.type === 'player');
         const playerBullets = this.entities.filter(e => e.type === 'player_bullet');
+        const playerLasers = this.entities.filter(e => e.type === 'player_laser');
         const powerUpDrops = this.entities.filter(e => e.type === 'power_up');
 
         // Enemy vs Player
@@ -140,6 +180,20 @@ export class GameEngine {
                         this.onPowerUpsChange([...this.powerUps]);
                         this.onPowerUpCollected();
                     }
+                }
+            }
+        }
+
+        for (const laser of playerLasers) {
+            for (const enemy of enemies) {
+                if (this.checkAABB(laser, enemy)) {
+                    enemy.takeDamage(enemy.hp, this);
+                }
+            }
+
+            for (const entity of this.entities) {
+                if (entity.type === 'enemy_bullet' && this.checkAABB(laser, entity)) {
+                    entity.isDead = true;
                 }
             }
         }

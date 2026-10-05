@@ -36,6 +36,7 @@ export default function PlayScreen({ onFinish }) {
   const [powerUpGlowKey, setPowerUpGlowKey] = useState(0)
   const canvasRef = useRef(null)
   const engineRef = useRef(null)
+  const gameScreenRef = useRef(null)
 
   const toggleMute = () => setIsMuted(!isMuted)
   const getHorizontalBounds = (playfieldWidth, playerWidth) => {
@@ -155,7 +156,16 @@ export default function PlayScreen({ onFinish }) {
                 }
                 return newLives;
             });
-        }, setPowerUps, () => setPowerUpGlowKey(key => key + 1));
+        }, setPowerUps, () => setPowerUpGlowKey(key => key + 1), () => {
+          gameScreenRef.current?.animate([
+            { transform: 'translate(0, 0)' },
+            { transform: 'translate(-3px, 2px)' },
+            { transform: 'translate(3px, -2px)' },
+            { transform: 'translate(-2px, -1px)' },
+            { transform: 'translate(2px, 1px)' },
+            { transform: 'translate(0, 0)' },
+          ], { duration: 320, easing: 'ease-out' });
+        });
         
         engineRef.current = engine;
         syncPlayerPosition(engine);
@@ -201,7 +211,7 @@ export default function PlayScreen({ onFinish }) {
 
 
   return (
-    <div className="flex flex-col w-full h-full relative">
+    <div ref={gameScreenRef} className="flex flex-col w-full h-full relative">
       {/* HUD (Top) */}
       <GameHUD time="00:42" lives={lives} onMenuClick={() => setIsPaused(true)} />
 
