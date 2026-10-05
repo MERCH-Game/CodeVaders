@@ -4,8 +4,13 @@ import commonBugImg from '../../assets/images/common_bug.png'
 import commonBugBlastImg from '../../assets/images/common_bug_blast.png'
 import criticalBugImg from '../../assets/images/critical_bug.png'
 import criticalBugBlastImg from '../../assets/images/critical_bug_blast.png'
+import claudePowerUpImg from '../../assets/images/claude.png'
+import cppPowerUpImg from '../../assets/images/cpp.png'
+import javaPowerUpImg from '../../assets/images/java.png'
+import pythonPowerUpImg from '../../assets/images/python.png'
 import { GameEngine } from '../../game/GameEngine.js'
 import { EnemySpawner } from '../../game/EnemySpawner.js'
+import { PowerUpSpawner } from '../../game/PowerUpSpawner.js'
 
 import GameHUD from '../../components/game/GameHUD.jsx'
 
@@ -27,6 +32,8 @@ export default function PlayScreen({ onFinish }) {
   const previousFrameTime = useRef(null)
   const playerPositionRef = useRef(playerPosition)
   const [lives, setLives] = useState(3)
+  const [powerUps, setPowerUps] = useState([])
+  const [powerUpGlowKey, setPowerUpGlowKey] = useState(0)
   const canvasRef = useRef(null)
   const engineRef = useRef(null)
 
@@ -93,21 +100,41 @@ export default function PlayScreen({ onFinish }) {
     }
   }
 
+  const syncPlayerPosition = (engine) => {
+    if (!playerRef.current || !canvasRef.current) return
+
+    const playerBounds = playerRef.current.getBoundingClientRect()
+    const canvasBounds = canvasRef.current.getBoundingClientRect()
+    engine.setPlayerPosition(
+      playerBounds.left - canvasBounds.left,
+      playerBounds.top - canvasBounds.top,
+      playerBounds.width,
+      playerBounds.height,
+    )
+  }
+
   useEffect(() => () => {
     if (movementFrame.current !== null) window.cancelAnimationFrame(movementFrame.current)
   }, [])
+
+  useEffect(() => {
+    if (engineRef.current) syncPlayerPosition(engineRef.current)
+  }, [playerPosition])
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
     // Load images
     const images = {};
-    let loadedCount = 0;
     const sources = {
       commonBug: commonBugImg,
       commonBugBlast: commonBugBlastImg,
       criticalBug: criticalBugImg,
-      criticalBugBlast: criticalBugBlastImg
+      criticalBugBlast: criticalBugBlastImg,
+      claude: claudePowerUpImg,
+      cpp: cppPowerUpImg,
+      java: javaPowerUpImg,
+      python: pythonPowerUpImg,
     };
 
     const initEngine = () => {
@@ -128,33 +155,32 @@ export default function PlayScreen({ onFinish }) {
                 }
                 return newLives;
             });
-        });
+        }, setPowerUps, () => setPowerUpGlowKey(key => key + 1));
         
         engineRef.current = engine;
+        syncPlayerPosition(engine);
         
         // Setup EnemySpawner
         const spawner = new EnemySpawner(images);
         engine.setSpawner(spawner);
+        engine.setPowerUpSpawner(new PowerUpSpawner(images));
 
         engine.start();
     };
 
+    initEngine();
+
     const keys = Object.keys(sources);
-    if (keys.length === 0) {
-        initEngine();
-    } else {
-        keys.forEach(key => {
-            const img = new Image();
-            img.src = sources[key];
-            img.onload = () => {
-                images[key] = img;
-                loadedCount++;
-                if (loadedCount === keys.length) {
-                    initEngine();
-                }
-            };
-        });
-    }
+    keys.forEach(key => {
+        const img = new Image();
+        img.onload = () => {
+            images[key] = img;
+        };
+        img.onerror = () => {
+            console.error(`Failed to load game image: ${key}`, sources[key]);
+        };
+        img.src = sources[key];
+    });
 
     return () => {
         if (engineRef.current) {
@@ -189,6 +215,48 @@ export default function PlayScreen({ onFinish }) {
         >
           <img src={playerLinux} alt="Player character" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)]" />
         </div>
+      </div>
+
+      {/* Power-up inventory */}
+      <div
+        key={powerUpGlowKey}
+        className={`absolute bottom-24 left-6 z-10 flex flex-col items-start gap-1 ${
+          powerUpGlowKey > 0 ? 'animate-power-up-pickup' : ''
+        }`}
+      >
+        <div className="flex flex-col gap-1.5" aria-label="Power-up inventory">
+          {Array.from({ length: 3 }, (_, index) => {
+            const powerUp = powerUps[index]
+            const imageSources = {
+              claude: claudePowerUpImg,
+              cpp: cppPowerUpImg,
+              java: javaPowerUpImg,
+              python: pythonPowerUpImg,
+            }
+
+            return (
+              <button
+                key={powerUp?.id ?? `empty-${index}`}
+                type="button"
+                disabled={!powerUp}
+                aria-label={powerUp ? `Use ${powerUp.type} power-up` : 'Empty power-up slot'}
+                onClick={() => engineRef.current?.consumePowerUp(index)}
+                className={`flex h-10 w-10 items-center justify-center rounded border border-white/20 ${
+                  powerUp ? 'bg-arcade-panel hover:border-arcade-blue active:scale-95' : 'bg-white/15'
+                }`}
+              >
+                {powerUp && (
+                  <img src={imageSources[powerUp.type]} alt="" className="h-7 w-7 object-contain" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+        {powerUps.length > 0 && (
+          <span className="w-10 text-center text-[10px] leading-tight text-white/70">
+            Tap
+          </span>
+        )}
       </div>
 
       {/* Controls (Bottom) */}
