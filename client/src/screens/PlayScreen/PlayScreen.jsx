@@ -4,6 +4,8 @@ import commonBugImg from '../../assets/images/common_bug.png'
 import commonBugBlastImg from '../../assets/images/common_bug_blast.png'
 import criticalBugImg from '../../assets/images/critical_bug.png'
 import criticalBugBlastImg from '../../assets/images/critical_bug_blast.png'
+import ddosBugImg from '../../assets/images/ddos_bug.png'
+import ddosOrbImg from '../../assets/images/ddos_orb.png'
 import claudePowerUpImg from '../../assets/images/claude.png'
 import cppPowerUpImg from '../../assets/images/cpp.png'
 import javaPowerUpImg from '../../assets/images/java.png'
@@ -11,6 +13,7 @@ import pythonPowerUpImg from '../../assets/images/python.png'
 import { GameEngine } from '../../game/GameEngine.js'
 import { EnemySpawner } from '../../game/EnemySpawner.js'
 import { PowerUpSpawner } from '../../game/PowerUpSpawner.js'
+import { useMusic } from '../../components/arcade/ArcadeShell.jsx'
 
 import GameHUD from '../../components/game/GameHUD.jsx'
 
@@ -23,7 +26,7 @@ import moveRightIcon from '../../assets/icons/move_right.png'
 
 export default function PlayScreen({ onFinish }) {
   const [isPaused, setIsPaused] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
+  const { isMuted, toggleMusic } = useMusic()
   const [playerPosition, setPlayerPosition] = useState(50)
   const playfieldRef = useRef(null)
   const playerRef = useRef(null)
@@ -38,7 +41,6 @@ export default function PlayScreen({ onFinish }) {
   const engineRef = useRef(null)
   const gameScreenRef = useRef(null)
 
-  const toggleMute = () => setIsMuted(!isMuted)
   const getHorizontalBounds = (playfieldWidth, playerWidth) => {
     if (!playfieldWidth || !playerRef.current) return { left: 0, right: 100 }
 
@@ -132,6 +134,8 @@ export default function PlayScreen({ onFinish }) {
       commonBugBlast: commonBugBlastImg,
       criticalBug: criticalBugImg,
       criticalBugBlast: criticalBugBlastImg,
+      ddosBug: ddosBugImg,
+      ddosOrb: ddosOrbImg,
       claude: claudePowerUpImg,
       cpp: cppPowerUpImg,
       java: javaPowerUpImg,
@@ -331,7 +335,7 @@ export default function PlayScreen({ onFinish }) {
 
               {/* Play / Mute Volume */}
               <button 
-                onClick={toggleMute}
+                onClick={toggleMusic}
                 className="flex items-center justify-between group hover:bg-white/5 p-2 -mx-2 rounded transition-colors"
               >
                 <span className="font-pixel text-sm text-white group-hover:text-arcade-pink transition-colors uppercase">

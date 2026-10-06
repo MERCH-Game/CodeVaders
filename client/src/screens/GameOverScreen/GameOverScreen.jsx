@@ -12,7 +12,7 @@ export default function GameOverScreen({ onRestart, onSave, onHome, score = 9999
 
   useEffect(() => {
     const sfx = new window.Audio(gameOverSound)
-    sfx.volume = 0.6
+    sfx.volume = 1.0
     sfxRef.current = sfx
     sfx.play().catch(() => { })
 

@@ -19,11 +19,13 @@ export class CommonBug {
         this.hp = COMMON_BUG_CONFIG.hp;
         
         this.state = 'WAITING'; // WAITING, DIVING, DYING, DEAD
+        this.isFormationMember = false;
         this.waitTimer = 0;
         this.velocityX = 0;
         this.velocityY = 0;
         this.isDead = false;
         
+        this.imageAssets = imageAssets;
         this.image = imageAssets.commonBug;
         this.blastImage = imageAssets.commonBugBlast;
         this.deathTimer = 0;
@@ -33,6 +35,17 @@ export class CommonBug {
         if (this.state === 'DEAD') {
             this.isDead = true;
             return;
+        }
+
+        if (this.isFormationMember) {
+            if (this.state === 'DYING') {
+                this.deathTimer += dt;
+                if (this.deathTimer > 0.2) {
+                    this.state = 'DEAD';
+                    this.isDead = true;
+                }
+            }
+            return; // Managed externally by IntroFormation
         }
 
         if (this.state === 'WAITING') {
@@ -107,9 +120,10 @@ export class CommonBug {
     render(ctx) {
         if (this.state === 'DEAD') return;
         
-        let imgToDraw = this.image;
-        if (this.state === 'DYING' && this.blastImage) {
-            imgToDraw = this.blastImage;
+        let imgToDraw = this.image || (this.imageAssets && this.imageAssets.commonBug);
+        if (this.state === 'DYING') {
+            const blast = this.blastImage || (this.imageAssets && this.imageAssets.commonBugBlast);
+            if (blast) imgToDraw = blast;
         }
 
         if (imgToDraw) {

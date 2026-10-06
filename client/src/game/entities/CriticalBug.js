@@ -25,6 +25,7 @@ export class CriticalBug {
         this.velocityY = 0;
         this.isDead = false;
         
+        this.imageAssets = imageAssets;
         this.image = imageAssets.criticalBug;
         this.blastImage = imageAssets.criticalBugBlast;
         this.deathTimer = 0;
@@ -113,9 +114,10 @@ export class CriticalBug {
     render(ctx) {
         if (this.state === 'DEAD') return;
         
-        let imgToDraw = this.image;
-        if (this.state === 'DYING' && this.blastImage) {
-            imgToDraw = this.blastImage;
+        let imgToDraw = this.image || (this.imageAssets && this.imageAssets.criticalBug);
+        if (this.state === 'DYING') {
+            const blast = this.blastImage || (this.imageAssets && this.imageAssets.criticalBugBlast);
+            if (blast) imgToDraw = blast;
         }
 
         if (imgToDraw) {
