@@ -1,15 +1,17 @@
+import { EnemyProjectile } from './EnemyProjectile.js';
+
 export const COMMON_BUG_CONFIG = {
     hp: 1,
     maxHp: 1,
-    waitDuration: 0.5, // seconds
-    diveSpeed: 250, // pixels per second
+    horizontalSpeed: 180, // pixels per second
+    fireRate: 1.2, // seconds between shots
     score: 100,
     width: 48,
     height: 48
 };
 
 export class CommonBug {
-    constructor(x, y, imageAssets) {
+    constructor(x, y, imageAssets, direction = 1) {
         this.type = 'enemy';
         this.id = 'common_' + Math.random().toString(36).substring(7);
         this.x = x;
@@ -18,17 +20,20 @@ export class CommonBug {
         this.height = COMMON_BUG_CONFIG.height;
         this.hp = COMMON_BUG_CONFIG.hp;
         
-        this.state = 'WAITING'; // WAITING, DIVING, DYING, DEAD
+        this.state = 'MOVING'; // MOVING, DYING, DEAD
         this.isFormationMember = false;
-        this.waitTimer = 0;
-        this.velocityX = 0;
-        this.velocityY = 0;
+        
+        this.direction = direction; // 1 for left-to-right, -1 for right-to-left
+        this.velocityX = this.direction * COMMON_BUG_CONFIG.horizontalSpeed;
+        
         this.isDead = false;
         
         this.imageAssets = imageAssets;
         this.image = imageAssets.commonBug;
         this.blastImage = imageAssets.commonBugBlast;
         this.deathTimer = 0;
+        
+        this.shootTimer = Math.random() * 0.4;
     }
 
     update(dt, engine) {
@@ -48,39 +53,28 @@ export class CommonBug {
             return; // Managed externally by IntroFormation
         }
 
-        if (this.state === 'WAITING') {
-            this.waitTimer += dt;
-            // Optional bobbing effect
-            this.y += Math.sin(this.waitTimer * 5) * 10 * dt;
-
-            if (this.waitTimer >= COMMON_BUG_CONFIG.waitDuration) {
-                this.state = 'DIVING';
-                
-                // Calculate dive vector towards player
-                const player = engine.entities.find(e => e.type === 'player');
-                if (player) {
-                    const dx = player.x + player.width / 2 - (this.x + this.width / 2);
-                    const dy = player.y + player.height / 2 - (this.y + this.height / 2);
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist > 0) {
-                        this.velocityX = (dx / dist) * COMMON_BUG_CONFIG.diveSpeed;
-                        this.velocityY = (dy / dist) * COMMON_BUG_CONFIG.diveSpeed;
-                    } else {
-                        this.velocityY = COMMON_BUG_CONFIG.diveSpeed;
-                    }
-                } else {
-                    this.velocityY = COMMON_BUG_CONFIG.diveSpeed; // default downward dive
+        if (this.state === 'MOVING') {
+            this.x += this.velocityX * dt;
+            
+            // Cleanly remove after exiting the opposite side
+            if (this.direction === 1 && this.x > engine.width + this.width) {
+                this.isDead = true;
+                this.state = 'DEAD';
+            } else if (this.direction === -1 && this.x < -this.width) {
+                this.isDead = true;
+                this.state = 'DEAD';
+            }
+            
+            // Only shoot while on-screen
+            const isVisible = this.x >= 10 && (this.x + this.width) <= (engine.width - 10);
+            if (isVisible) {
+                this.shootTimer += dt;
+                if (this.shootTimer >= COMMON_BUG_CONFIG.fireRate) {
+                    this.shootTimer = 0;
+                    this.shoot(engine);
                 }
             }
-        } else if (this.state === 'DIVING') {
-            this.x += this.velocityX * dt;
-            this.y += this.velocityY * dt;
             
-            // Cleanly remove/despawn the enemy after it exits the relevant game area
-            if (this.y > engine.height + this.height || this.x < -this.width || this.x > engine.width + this.width) {
-                this.state = 'DEAD';
-                this.isDead = true;
-            }
         } else if (this.state === 'DYING') {
             this.deathTimer += dt;
             if (this.deathTimer > 0.2) {
@@ -88,6 +82,35 @@ export class CommonBug {
                 this.isDead = true;
             }
         }
+    }
+
+    shoot(engine) {
+        // Player position is tracked in engine.playerShooter
+        const player = engine.playerShooter || engine.entities.find(e => e.type === 'player');
+        
+        const bulletX = this.x + this.width / 2;
+        const bulletY = this.y + this.height;
+        
+        let vx = 0;
+        let vy = 250; // bullet speed
+        
+        if (player) {
+            const targetX = player.centerX ?? (player.x + player.width / 2);
+            const targetY = player.y + (player.height ? player.height / 2 : 0);
+            
+            const dx = targetX - bulletX;
+            const dy = targetY - bulletY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > 0) {
+                const speed = 250; // bullet speed
+                vx = (dx / dist) * speed;
+                vy = (dy / dist) * speed;
+            }
+        }
+        
+        const projectile = new EnemyProjectile(bulletX, bulletY, vx, vy, 'dot');
+        engine.addEntity(projectile);
     }
 
     takeDamage(amount, engine) {

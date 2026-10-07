@@ -27,16 +27,18 @@ export default function GameOverScreen({ onRestart, onSave, onHome, score = 9999
     <div className="flex flex-col items-center justify-evenly w-full h-full px-[8%] py-[4%] text-center">
 
       {/* ── Top group: CodeVaders logo + GAME OVER title ──── */}
-      <div className="flex flex-col items-center gap-1 w-full shrink-0">
+      <div className="flex flex-col items-center gap-1 w-full shrink-0 select-none">
         <img
           src={gameLogo}
           alt="CodeVaders"
-          className="w-[72%] max-h-[12vh] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+          draggable="false"
+          className="w-[72%] max-h-[12vh] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none select-none"
         />
         <img
           src={gameOverImg}
           alt="Game Over"
-          className="w-[108%] max-w-none max-h-[18vh] object-contain drop-shadow-[0_4px_18px_rgba(200,0,0,0.6)] animate-flicker"
+          draggable="false"
+          className="w-[108%] max-w-none max-h-[18vh] object-contain drop-shadow-[0_4px_18px_rgba(200,0,0,0.6)] animate-flicker pointer-events-none select-none"
         />
       </div>
 

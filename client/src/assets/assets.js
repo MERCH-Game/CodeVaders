@@ -23,6 +23,7 @@ import criticalBug     from './images/critical_bug.png'
 import criticalBugBlast from './images/critical_bug_blast.png'
 import ddosBug         from './images/ddos_bug.png'
 import ddosOrb         from './images/ddos_orb.png'
+import wormBug         from './images/worm_bug.png'
 
 // ---------------------------------------------------------------------------
 // Audio — Game SFX & Music
@@ -53,6 +54,7 @@ export const Images = {
   criticalBugBlast,
   ddosBug,
   ddosOrb,
+  wormBug,
 }
 
 export const Audio = {
@@ -70,7 +72,7 @@ export const Audio = {
 export {
   // Images
   acLogo, acName, bg, gameLogo, hero, playerLinux, sample1Btn, sample2Btn,
-  commonBug, commonBugBlast, criticalBug, criticalBugBlast, ddosBug, ddosOrb,
+  commonBug, commonBugBlast, criticalBug, criticalBugBlast, ddosBug, ddosOrb, wormBug,
   // Audio
   buttonSound, defeatSound, enemyHitSound, bgMusic, gameOverSound,
   playerHitSound, pythonPowerup,

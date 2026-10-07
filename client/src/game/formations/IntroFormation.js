@@ -80,12 +80,12 @@ export class IntroFormation {
                 this.state = 'ADVANCING';
             }
         } else if (this.state === 'ADVANCING') {
-            const advanceSpeed = 35; // Slow approach
+            const advanceSpeed = 55; // Steady approach
             for (const bug of this.bugs) {
                 if (bug.state === 'DYING') continue;
                 bug.y += advanceSpeed * dt;
                 
-                if (bug.y > engine.height + bug.height) {
+                if (bug.y > engine.height) {
                     bug.state = 'DEAD';
                     bug.isDead = true;
                 }
