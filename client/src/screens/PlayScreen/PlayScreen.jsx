@@ -155,6 +155,13 @@ export default function PlayScreen({ onFinish }) {
 
         const engine = new GameEngine(canvas, () => {
             // On Player Hit
+            gameScreenRef.current?.animate([
+              { transform: 'translate(0, 0)', boxShadow: 'inset 0 0 0 rgba(255, 0, 0, 0)' },
+              { transform: 'translate(-3px, 2px)', boxShadow: 'inset 0 0 32px rgba(255, 0, 0, 0.55)' },
+              { transform: 'translate(3px, -2px)', boxShadow: 'inset 0 0 24px rgba(255, 0, 0, 0.35)' },
+              { transform: 'translate(-2px, -1px)', boxShadow: 'inset 0 0 12px rgba(255, 0, 0, 0.18)' },
+              { transform: 'translate(0, 0)', boxShadow: 'inset 0 0 0 rgba(255, 0, 0, 0)' },
+            ], { duration: 360, easing: 'ease-out' });
             setLives(prev => {
                 const newLives = prev - 1;
                 if (newLives <= 0) {
