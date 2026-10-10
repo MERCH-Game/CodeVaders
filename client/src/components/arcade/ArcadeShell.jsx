@@ -1,9 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import ArcadeFrame from './ArcadeFrame.jsx'
 import { bgMusic } from '../../assets/assets.js'
 import muteIcon from '../../assets/icons/mute.png'
 import unmuteIcon from '../../assets/icons/unmute.png'
 import IconButton from './IconButton.jsx'
+
+export const MusicContext = createContext({
+  isMuted: false,
+  toggleMusic: () => {}
+})
+
+export function useMusic() {
+  return useContext(MusicContext)
+}
 
 export default function ArcadeShell({ children, hideVolume = false }) {
   const [isMuted, setIsMuted] = useState(false)
@@ -12,14 +21,43 @@ export default function ArcadeShell({ children, hideVolume = false }) {
   useEffect(() => {
     const music = new window.Audio(bgMusic)
     music.loop = true
-    music.volume = 0.5
+    music.volume = 1.0
     musicRef.current = music
-    music.play().catch(() => setIsMuted(true))
+
+    const tryPlay = () => {
+      if (music.paused) {
+        music.play()
+          .then(() => setIsMuted(false))
+          .catch(() => setIsMuted(true))
+      }
+    }
+
+    // Attempt immediate playback
+    tryPlay()
+
+    // Browsers block autoplay unless the user interacts. 
+    // This listener starts the music on the very first interaction.
+    const onInteract = () => {
+      tryPlay()
+      document.removeEventListener('click', onInteract)
+      document.removeEventListener('keydown', onInteract)
+      document.removeEventListener('touchstart', onInteract)
+    }
+
+    document.addEventListener('click', onInteract)
+    document.addEventListener('keydown', onInteract)
+    document.addEventListener('touchstart', onInteract)
+
+    // Cleanup global window hacks from before
+    if (window.setGameMuted) delete window.setGameMuted;
 
     return () => {
       music.pause()
       music.currentTime = 0
       musicRef.current = null
+      document.removeEventListener('click', onInteract)
+      document.removeEventListener('keydown', onInteract)
+      document.removeEventListener('touchstart', onInteract)
     }
   }, [])
 
@@ -37,7 +75,8 @@ export default function ArcadeShell({ children, hideVolume = false }) {
   }
 
   return (
-    <div className="flex w-full h-[100svh] items-center justify-center bg-arcade-bg overflow-hidden">
+    <MusicContext.Provider value={{ isMuted, toggleMusic }}>
+      <div className="flex w-full h-[100svh] items-center justify-center bg-arcade-bg overflow-hidden">
       {/* 
         Responsive behavior:
         - Mobile: Full width/height (w-full h-full)
@@ -65,5 +104,6 @@ export default function ArcadeShell({ children, hideVolume = false }) {
         </ArcadeFrame>
       </div>
     </div>
+    </MusicContext.Provider>
   )
 }

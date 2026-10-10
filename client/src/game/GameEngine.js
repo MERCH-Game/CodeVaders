@@ -16,7 +16,13 @@ export class GameEngine {
         this.width = canvas.width;
         this.height = canvas.height;
         this.isRunning = false;
-        this.onPlayerHit = onPlayerHit;
+        this._originalOnPlayerHit = onPlayerHit;
+        this.playerHitThisFrame = false;
+        this.onPlayerHit = () => {
+            if (this.playerHitThisFrame) return;
+            this.playerHitThisFrame = true;
+            if (this._originalOnPlayerHit) this._originalOnPlayerHit();
+        };
         this.onPowerUpsChange = onPowerUpsChange;
         this.onPowerUpCollected = onPowerUpCollected;
         this.onLaserFired = onLaserFired;
@@ -153,17 +159,41 @@ export class GameEngine {
     }
 
     handleCollisions() {
+        this.playerHitThisFrame = false;
+
         const enemies = this.entities.filter(e => e.type === 'enemy');
-        const player = this.entities.find(e => e.type === 'player');
+        const player = this.playerShooter;
         const playerBullets = this.entities.filter(e => e.type === 'player_bullet');
         const playerLasers = this.entities.filter(e => e.type === 'player_laser');
         const powerUpDrops = this.entities.filter(e => e.type === 'power_up');
+        const enemyBullets = this.entities.filter(e => e.type === 'enemy_bullet');
+
+        // PlayerBullets vs EnemyBullets
+        for (const pBullet of playerBullets) {
+            if (pBullet.isDead) continue;
+            for (const eBullet of enemyBullets) {
+                if (eBullet.isDead) continue;
+                if (this.checkAABB(pBullet, eBullet)) {
+                    pBullet.isDead = true;
+                    eBullet.isDead = true;
+                    break;
+                }
+            }
+        }
 
         // Enemy vs Player
         if (player) {
             for (const enemy of enemies) {
                 if (this.checkAABB(player, enemy)) {
                     enemy.onCollideWithPlayer(player, this);
+                }
+            }
+
+            for (const bullet of enemyBullets) {
+                if (bullet.isDead) continue;
+                if (this.checkAABB(player, bullet)) {
+                    if (this.onPlayerHit) this.onPlayerHit();
+                    bullet.isDead = true;
                 }
             }
         }
@@ -200,6 +230,7 @@ export class GameEngine {
 
         // PlayerBullets vs Enemy
         for (const bullet of playerBullets) {
+            if (bullet.isDead) continue;
             for (const enemy of enemies) {
                 if (this.checkAABB(bullet, enemy)) {
                     enemy.takeDamage(bullet.damage || 1, this);

@@ -25,6 +25,7 @@ export class CriticalBug {
         this.velocityY = 0;
         this.isDead = false;
         
+        this.imageAssets = imageAssets;
         this.image = imageAssets.criticalBug;
         this.blastImage = imageAssets.criticalBugBlast;
         this.deathTimer = 0;
@@ -39,19 +40,9 @@ export class CriticalBug {
         }
 
         if (this.state === 'MOVING') {
-            // Continuously update direction towards the player (if player doesn't exist, go down)
-            const player = engine.entities.find(e => e.type === 'player');
-            if (player) {
-                const dx = player.x + player.width / 2 - (this.x + this.width / 2);
-                const dy = player.y + player.height / 2 - (this.y + this.height / 2);
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 0) {
-                    this.velocityX = (dx / dist) * CRITICAL_BUG_CONFIG.speed;
-                    this.velocityY = (dy / dist) * CRITICAL_BUG_CONFIG.speed;
-                }
-            } else {
-                this.velocityY = CRITICAL_BUG_CONFIG.speed;
-            }
+            // Critical bugs move vertically only
+            this.velocityX = 0;
+            this.velocityY = CRITICAL_BUG_CONFIG.speed;
 
             this.x += this.velocityX * dt;
             this.y += this.velocityY * dt;
@@ -64,7 +55,7 @@ export class CriticalBug {
             }
             
             // Cleanly remove/despawn the enemy after it exits the relevant game area
-            if (this.y > engine.height + this.height || this.x < -this.width || this.x > engine.width + this.width || this.y < -this.height * 2) {
+            if (this.y > engine.height + this.height) {
                 this.state = 'DEAD';
                 this.isDead = true;
             }
@@ -113,9 +104,10 @@ export class CriticalBug {
     render(ctx) {
         if (this.state === 'DEAD') return;
         
-        let imgToDraw = this.image;
-        if (this.state === 'DYING' && this.blastImage) {
-            imgToDraw = this.blastImage;
+        let imgToDraw = this.image || (this.imageAssets && this.imageAssets.criticalBug);
+        if (this.state === 'DYING') {
+            const blast = this.blastImage || (this.imageAssets && this.imageAssets.criticalBugBlast);
+            if (blast) imgToDraw = blast;
         }
 
         if (imgToDraw) {
