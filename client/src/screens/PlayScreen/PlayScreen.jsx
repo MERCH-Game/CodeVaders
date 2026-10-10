@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import playerLinux from '../../assets/images/player_linux.png'
+import playerHit from '../../assets/images/player_hit.png'
 import player2 from '../../assets/images/player2.png'
 import player3 from '../../assets/images/player3.png'
 import commonBugImg from '../../assets/images/common_bug.png'
@@ -13,6 +14,10 @@ import claudePowerUpImg from '../../assets/images/claude.png'
 import cppPowerUpImg from '../../assets/images/cpp.png'
 import javaPowerUpImg from '../../assets/images/java.png'
 import pythonPowerUpImg from '../../assets/images/python.png'
+import croshairImg from '../../assets/images/croshair.png'
+import rocketImg from '../../assets/images/rocket.png'
+import rocket2Img from '../../assets/images/rocket2.png'
+import rocket3Img from '../../assets/images/rocket3.png'
 import { GameEngine } from '../../game/GameEngine.js'
 import { EnemySpawner } from '../../game/EnemySpawner.js'
 import { PowerUpSpawner } from '../../game/PowerUpSpawner.js'
@@ -39,6 +44,8 @@ export default function PlayScreen({ onFinish }) {
   const playerPositionRef = useRef(playerPosition)
   const [lives, setLives] = useState(3)
   const livesRef = useRef(3)
+  const [isPlayerHit, setIsPlayerHit] = useState(false)
+  const playerHitTimerRef = useRef(null)
   const [isPlayerDestroyed, setIsPlayerDestroyed] = useState(false)
   const [destructionFrame, setDestructionFrame] = useState(0)
   const [powerUps, setPowerUps] = useState([])
@@ -124,13 +131,14 @@ export default function PlayScreen({ onFinish }) {
 
   useEffect(() => () => {
     if (movementFrame.current !== null) window.cancelAnimationFrame(movementFrame.current)
+    if (playerHitTimerRef.current !== null) window.clearTimeout(playerHitTimerRef.current)
   }, [])
 
   useEffect(() => {
     if (!isPlayerDestroyed) return
 
-    const nextFrameTimer = window.setTimeout(() => setDestructionFrame(1), 400)
-    const finishTimer = window.setTimeout(onFinish, 900)
+    const nextFrameTimer = window.setTimeout(() => setDestructionFrame(1), 900)
+    const finishTimer = window.setTimeout(onFinish, 1400)
     return () => {
       window.clearTimeout(nextFrameTimer)
       window.clearTimeout(finishTimer)
@@ -158,6 +166,10 @@ export default function PlayScreen({ onFinish }) {
       cpp: cppPowerUpImg,
       java: javaPowerUpImg,
       python: pythonPowerUpImg,
+      autoAimCrosshair: croshairImg,
+      rocket1: rocketImg,
+      rocket2: rocket2Img,
+      rocket3: rocket3Img,
     };
 
     const initEngine = () => {
@@ -171,6 +183,12 @@ export default function PlayScreen({ onFinish }) {
 
         const engine = new GameEngine(canvas, () => {
             // On Player Hit
+            setIsPlayerHit(true);
+            if (playerHitTimerRef.current !== null) window.clearTimeout(playerHitTimerRef.current);
+            playerHitTimerRef.current = window.setTimeout(() => {
+              setIsPlayerHit(false);
+              playerHitTimerRef.current = null;
+            }, 500);
             playerRef.current?.animate([
               { filter: 'drop-shadow(0 0 0 rgba(255, 0, 0, 0))' },
               { filter: 'drop-shadow(0 0 8px rgba(255, 0, 0, 1)) drop-shadow(0 0 20px rgba(255, 0, 0, 0.8))' },
@@ -203,6 +221,8 @@ export default function PlayScreen({ onFinish }) {
             { transform: 'translate(0, 0)' },
           ], { duration: 320, easing: 'ease-out' });
         });
+
+        engine.autoAimImages = images;
         
         engineRef.current = engine;
         syncPlayerPosition(engine);
@@ -260,7 +280,7 @@ export default function PlayScreen({ onFinish }) {
           className="absolute bottom-24 w-[3em] pointer-events-none select-none"
           style={{ left: `${playerPosition}%`, transform: 'translateX(-50%)' }}
         >
-          <img src={isPlayerDestroyed ? (destructionFrame === 0 ? player2 : player3) : playerLinux} alt="Player character" draggable="false" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)] select-none pointer-events-none" />
+          <img src={isPlayerHit ? playerHit : isPlayerDestroyed ? (destructionFrame === 0 ? player2 : player3) : playerLinux} alt="Player character" draggable="false" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)] select-none pointer-events-none" />
         </div>
       </div>
 

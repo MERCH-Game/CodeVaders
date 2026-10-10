@@ -1,5 +1,6 @@
 import { PlayerProjectile } from './entities/PlayerProjectile.js';
 import { PlayerLaser } from './entities/PlayerLaser.js';
+import { AutoAimMissile } from './entities/AutoAimMissile.js';
 
 export class GameEngine {
     constructor(
@@ -34,6 +35,9 @@ export class GameEngine {
         this.enemySlowTimer = 0;
         this.cppPowerUpTimer = 0;
         this.tripleShotTimer = 0;
+        this.autoAimActive = false;
+        this.autoAimTargets = [];
+        this.autoAimImages = null;
     }
 
     setSpawner(spawner) {
@@ -77,10 +81,16 @@ export class GameEngine {
         if (index < 0 || index >= this.powerUps.length) return;
 
         const powerUp = this.powerUps[index];
-        if (!['cpp', 'python', 'java'].includes(powerUp.type)) return;
+        if (!['claude', 'cpp', 'python', 'java'].includes(powerUp.type)) return;
 
         this.powerUps.splice(index, 1);
-        if (powerUp.type === 'cpp') {
+        if (powerUp.type === 'claude') {
+            this.autoAimTargets = this.entities.filter(entity =>
+                entity.type === 'enemy' && !entity.isDead && entity.state !== 'DYING' && entity.state !== 'DEAD'
+            );
+            this.autoAimActive = this.autoAimTargets.length > 0;
+            this.launchNextAutoAimMissile();
+        } else if (powerUp.type === 'cpp') {
             this.enemySlowTimer = 5;
             this.cppPowerUpTimer = 5;
         } else if (powerUp.type === 'python') {
@@ -91,6 +101,22 @@ export class GameEngine {
             this.tripleShotTimer = 5;
         }
         this.onPowerUpsChange([...this.powerUps]);
+    }
+
+    launchNextAutoAimMissile() {
+        while (this.autoAimTargets.length > 0) {
+            const target = this.autoAimTargets.shift();
+            if (!target.isDead && target.state !== 'DYING' && target.state !== 'DEAD') {
+                const player = this.playerShooter;
+                if (player) {
+                    this.addEntity(new AutoAimMissile(player.centerX, player.y, target, this.autoAimImages));
+                    return;
+                }
+            }
+        }
+
+        this.autoAimActive = false;
+        this.autoAimTargets = [];
     }
 
     loop(time) {
@@ -114,7 +140,7 @@ export class GameEngine {
         this.tripleShotTimer = Math.max(0, this.tripleShotTimer - dt);
 
         const laserActive = this.entities.some(entity => entity.type === 'player_laser' && !entity.isDead);
-        if (this.playerShooter && !laserActive) {
+        if (this.playerShooter && !laserActive && !this.autoAimActive) {
             this.playerShootTimer += dt;
             const fireInterval = this.cppPowerUpTimer > 0 ? 0.5 : 1.5;
             if (this.playerShootTimer >= fireInterval) {
@@ -133,7 +159,7 @@ export class GameEngine {
         }
 
         // Update systems/spawner
-        if (this.spawner && this.spawner.update) {
+        if (!this.autoAimActive && this.spawner && this.spawner.update) {
             this.spawner.update(dt, this);
         }
         if (this.powerUpSpawner && this.powerUpSpawner.update) {
@@ -144,10 +170,15 @@ export class GameEngine {
         for (let i = this.entities.length - 1; i >= 0; i--) {
             const entity = this.entities[i];
             if (entity.update) {
-                const entityDt = entity.type === 'enemy' && this.enemySlowTimer > 0
-                    ? dt * 0.5
-                    : dt;
-                entity.update(entityDt, this);
+                const shouldFreeze = this.autoAimActive && (
+                    (entity.type === 'enemy' && entity.state !== 'DYING') || entity.type === 'enemy_bullet'
+                );
+                if (!shouldFreeze) {
+                    const entityDt = entity.type === 'enemy' && this.enemySlowTimer > 0
+                        ? dt * 0.5
+                        : dt;
+                    entity.update(entityDt, this);
+                }
             }
             if (entity.isDead) {
                 this.entities.splice(i, 1);
@@ -182,7 +213,7 @@ export class GameEngine {
         }
 
         // Enemy vs Player
-        if (player) {
+        if (player && !this.autoAimActive) {
             for (const enemy of enemies) {
                 if (this.checkAABB(player, enemy)) {
                     enemy.onCollideWithPlayer(player, this);
@@ -256,6 +287,17 @@ export class GameEngine {
             if (entity.render) {
                 entity.render(this.ctx);
             }
+        }
+        if (this.autoAimActive) {
+            this.ctx.save();
+            this.ctx.font = 'bold 18px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'top';
+            this.ctx.fillStyle = '#ff334f';
+            this.ctx.shadowColor = '#ff334f';
+            this.ctx.shadowBlur = 12;
+            this.ctx.fillText('AUTO AIM', this.width / 2, 12);
+            this.ctx.restore();
         }
     }
 }
