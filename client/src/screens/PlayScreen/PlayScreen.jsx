@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import playerLinux from '../../assets/images/player_linux.png'
+import player2 from '../../assets/images/player2.png'
+import player3 from '../../assets/images/player3.png'
 import commonBugImg from '../../assets/images/common_bug.png'
 import commonBugBlastImg from '../../assets/images/common_bug_blast.png'
 import criticalBugImg from '../../assets/images/critical_bug.png'
@@ -36,6 +38,9 @@ export default function PlayScreen({ onFinish }) {
   const previousFrameTime = useRef(null)
   const playerPositionRef = useRef(playerPosition)
   const [lives, setLives] = useState(3)
+  const livesRef = useRef(3)
+  const [isPlayerDestroyed, setIsPlayerDestroyed] = useState(false)
+  const [destructionFrame, setDestructionFrame] = useState(0)
   const [powerUps, setPowerUps] = useState([])
   const [powerUpGlowKey, setPowerUpGlowKey] = useState(0)
   const canvasRef = useRef(null)
@@ -122,6 +127,17 @@ export default function PlayScreen({ onFinish }) {
   }, [])
 
   useEffect(() => {
+    if (!isPlayerDestroyed) return
+
+    const nextFrameTimer = window.setTimeout(() => setDestructionFrame(1), 400)
+    const finishTimer = window.setTimeout(onFinish, 900)
+    return () => {
+      window.clearTimeout(nextFrameTimer)
+      window.clearTimeout(finishTimer)
+    }
+  }, [isPlayerDestroyed, onFinish])
+
+  useEffect(() => {
     if (engineRef.current) syncPlayerPosition(engineRef.current)
   }, [playerPosition])
 
@@ -168,13 +184,15 @@ export default function PlayScreen({ onFinish }) {
               { transform: 'translate(-2px, -1px)', boxShadow: 'inset 0 0 12px rgba(255, 0, 0, 0.18)' },
               { transform: 'translate(0, 0)', boxShadow: 'inset 0 0 0 rgba(255, 0, 0, 0)' },
             ], { duration: 360, easing: 'ease-out' });
-            setLives(prev => {
-                const newLives = prev - 1;
-                if (newLives <= 0) {
-                    onFinish(); // End game
-                }
-                return newLives;
-            });
+            if (livesRef.current <= 0) return;
+            const newLives = livesRef.current - 1;
+            livesRef.current = newLives;
+            setLives(newLives);
+            if (newLives === 0) {
+              setIsPlayerDestroyed(true);
+              engineRef.current?.stop();
+              stopMoving();
+            }
         }, setPowerUps, () => setPowerUpGlowKey(key => key + 1), () => {
           gameScreenRef.current?.animate([
             { transform: 'translate(0, 0)' },
@@ -242,7 +260,7 @@ export default function PlayScreen({ onFinish }) {
           className="absolute bottom-24 w-[3em] pointer-events-none select-none"
           style={{ left: `${playerPosition}%`, transform: 'translateX(-50%)' }}
         >
-          <img src={playerLinux} alt="Player character" draggable="false" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)] select-none pointer-events-none" />
+          <img src={isPlayerDestroyed ? (destructionFrame === 0 ? player2 : player3) : playerLinux} alt="Player character" draggable="false" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)] select-none pointer-events-none" />
         </div>
       </div>
 
