@@ -155,6 +155,12 @@ export default function PlayScreen({ onFinish }) {
 
         const engine = new GameEngine(canvas, () => {
             // On Player Hit
+            playerRef.current?.animate([
+              { filter: 'drop-shadow(0 0 0 rgba(255, 0, 0, 0))' },
+              { filter: 'drop-shadow(0 0 8px rgba(255, 0, 0, 1)) drop-shadow(0 0 20px rgba(255, 0, 0, 0.8))' },
+              { filter: 'drop-shadow(0 0 5px rgba(255, 0, 0, 0.7)) drop-shadow(0 0 12px rgba(255, 0, 0, 0.45))' },
+              { filter: 'drop-shadow(0 0 0 rgba(255, 0, 0, 0))' },
+            ], { duration: 500, easing: 'ease-out' });
             gameScreenRef.current?.animate([
               { transform: 'translate(0, 0)', boxShadow: 'inset 0 0 0 rgba(255, 0, 0, 0)' },
               { transform: 'translate(-3px, 2px)', boxShadow: 'inset 0 0 32px rgba(255, 0, 0, 0.55)' },
@@ -233,7 +239,7 @@ export default function PlayScreen({ onFinish }) {
         <canvas ref={canvasRef} tabIndex="-1" className="absolute inset-0 block w-full h-full select-none outline-none focus:outline-none" />
         <div
           ref={playerRef}
-          className="absolute bottom-0 w-[3em] pointer-events-none select-none"
+          className="absolute bottom-24 w-[3em] pointer-events-none select-none"
           style={{ left: `${playerPosition}%`, transform: 'translateX(-50%)' }}
         >
           <img src={playerLinux} alt="Player character" draggable="false" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)] select-none pointer-events-none" />
@@ -283,7 +289,7 @@ export default function PlayScreen({ onFinish }) {
       </div>
 
       {/* Controls (Bottom) */}
-      <div className="flex w-full items-center justify-between px-6 pb-6 pt-3 bg-gradient-to-t from-arcade-bg to-transparent">
+      <div className="absolute bottom-0 left-0 z-10 flex w-full items-center justify-between px-6 pb-6 pt-3 bg-gradient-to-t from-arcade-bg to-transparent">
         <button
           type="button"
           aria-label="Move player left"
