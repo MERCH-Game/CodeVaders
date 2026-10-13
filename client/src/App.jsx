@@ -1,26 +1,31 @@
 import { useState } from 'react'
-import './App.css'
-import GameOverScreen from './screens/GameOverScreen.jsx'
-import HomeScreen from './screens/HomeScreen.jsx'
-import PlayScreen from './screens/PlayScreen.jsx'
-import './screens/Screens.css'
+import ArcadeShell from './components/arcade/ArcadeShell.jsx'
+import GameOverScreen from './screens/GameOverScreen/GameOverScreen.jsx'
+import HomeScreen from './screens/HomeScreen/HomeScreen.jsx'
+import PlayScreen from './screens/PlayScreen/PlayScreen.jsx'
 
 function App() {
   const [activeScreen, setActiveScreen] = useState('home')
+  const [finalScore, setFinalScore] = useState(0)
+
+  const finishGame = (score) => {
+    setFinalScore(score)
+    setActiveScreen('game-over')
+  }
 
   return (
-    <main className="app-shell">
-      <div className="screen-stage">
-        {activeScreen === 'home' && <HomeScreen onStart={() => setActiveScreen('play')} />}
-        {activeScreen === 'play' && <PlayScreen onFinish={() => setActiveScreen('game-over')} />}
-        {activeScreen === 'game-over' && (
-          <GameOverScreen
-            onHome={() => setActiveScreen('home')}
-            onRestart={() => setActiveScreen('play')}
-          />
-        )}
-      </div>
-    </main>
+    <ArcadeShell hideVolume={activeScreen === 'play'}>
+      {activeScreen === 'home' && <HomeScreen onStart={() => setActiveScreen('play')} />}
+      {activeScreen === 'play' && <PlayScreen onFinish={finishGame} />}
+      {activeScreen === 'game-over' && (
+        <GameOverScreen
+          onHome={() => setActiveScreen('home')}
+          onRestart={() => setActiveScreen('play')}
+          onSave={() => console.log('Saved!')}
+          score={finalScore}
+        />
+      )}
+    </ArcadeShell>
   )
 }
 
