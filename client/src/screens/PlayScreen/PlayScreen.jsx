@@ -5,11 +5,14 @@ import player2 from '../../assets/images/player2.png'
 import player3 from '../../assets/images/player3.png'
 import commonBugImg from '../../assets/images/common_bug.png'
 import commonBugBlastImg from '../../assets/images/common_bug_blast.png'
+import commonBugBulletImg from '../../assets/images/common_bug_bullet.png'
 import criticalBugImg from '../../assets/images/critical_bug.png'
 import criticalBugBlastImg from '../../assets/images/critical_bug_blast.png'
 import ddosBugImg from '../../assets/images/ddos_bug.png'
 import ddosOrbImg from '../../assets/images/ddos_orb.png'
 import wormBugImg from '../../assets/images/worm_bug.png'
+import wormBugFaceImg from '../../assets/images/worm_bug_face.png'
+import wormBugSegmentImg from '../../assets/images/worm_bug_segment.png'
 import claudePowerUpImg from '../../assets/images/claude.png'
 import cppPowerUpImg from '../../assets/images/cpp.png'
 import javaPowerUpImg from '../../assets/images/java.png'
@@ -157,11 +160,14 @@ export default function PlayScreen({ onFinish }) {
     const sources = {
       commonBug: commonBugImg,
       commonBugBlast: commonBugBlastImg,
+      commonBugBullet: commonBugBulletImg,
       criticalBug: criticalBugImg,
       criticalBugBlast: criticalBugBlastImg,
       ddosBug: ddosBugImg,
       ddosOrb: ddosOrbImg,
       wormBug: wormBugImg,
+      wormBugFace: wormBugFaceImg,
+      wormBugSegment: wormBugSegmentImg,
       claude: claudePowerUpImg,
       cpp: cppPowerUpImg,
       java: javaPowerUpImg,
@@ -223,6 +229,7 @@ export default function PlayScreen({ onFinish }) {
         });
 
         engine.autoAimImages = images;
+        engine.images = images;
         
         engineRef.current = engine;
         syncPlayerPosition(engine);

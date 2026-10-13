@@ -29,8 +29,9 @@ export class CommonBug {
         this.isDead = false;
         
         this.imageAssets = imageAssets;
-        this.image = imageAssets.commonBug;
-        this.blastImage = imageAssets.commonBugBlast;
+        this.image = imageAssets ? imageAssets.commonBug : null;
+        this.blastImage = imageAssets ? imageAssets.commonBugBlast : null;
+        this.bulletImage = imageAssets ? imageAssets.commonBugBullet : null;
         this.deathTimer = 0;
         
         this.shootTimer = Math.random() * 0.4;
@@ -88,7 +89,8 @@ export class CommonBug {
         // Player position is tracked in engine.playerShooter
         const player = engine.playerShooter || engine.entities.find(e => e.type === 'player');
         
-        const bulletX = this.x + this.width / 2;
+        const bulletWidth = 12;
+        const bulletX = this.x + this.width / 2 - bulletWidth / 2;
         const bulletY = this.y + this.height;
         
         let vx = 0;
@@ -98,7 +100,7 @@ export class CommonBug {
             const targetX = player.centerX ?? (player.x + player.width / 2);
             const targetY = player.y + (player.height ? player.height / 2 : 0);
             
-            const dx = targetX - bulletX;
+            const dx = targetX - (bulletX + bulletWidth / 2);
             const dy = targetY - bulletY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
@@ -109,7 +111,8 @@ export class CommonBug {
             }
         }
         
-        const projectile = new EnemyProjectile(bulletX, bulletY, vx, vy, 'dot');
+        const bulletImg = this.bulletImage || (this.imageAssets && this.imageAssets.commonBugBullet) || (engine && engine.images && engine.images.commonBugBullet) || null;
+        const projectile = new EnemyProjectile(bulletX, bulletY, vx, vy, 'common', bulletImg);
         engine.addEntity(projectile);
     }
 
