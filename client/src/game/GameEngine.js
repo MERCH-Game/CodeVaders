@@ -9,6 +9,7 @@ export class GameEngine {
         onPowerUpsChange = () => {},
         onPowerUpCollected = () => {},
         onLaserFired = () => {},
+        onEnemyHit = () => {},
     ) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
@@ -27,6 +28,7 @@ export class GameEngine {
         this.onPowerUpsChange = onPowerUpsChange;
         this.onPowerUpCollected = onPowerUpCollected;
         this.onLaserFired = onLaserFired;
+        this.onEnemyHit = onEnemyHit;
         this.powerUps = [];
         this.spawner = null;
         this.powerUpSpawner = null;
@@ -215,14 +217,14 @@ export class GameEngine {
         // Enemy vs Player
         if (player && !this.autoAimActive) {
             for (const enemy of enemies) {
-                if (this.checkAABB(player, enemy)) {
+                if (this.checkAABB(player, enemy, 0.1)) {
                     enemy.onCollideWithPlayer(player, this);
                 }
             }
 
             for (const bullet of enemyBullets) {
                 if (bullet.isDead) continue;
-                if (this.checkAABB(player, bullet)) {
+                if (this.checkAABB(player, bullet, 0.1)) {
                     if (this.onPlayerHit) this.onPlayerHit();
                     bullet.isDead = true;
                 }
@@ -263,8 +265,9 @@ export class GameEngine {
         for (const bullet of playerBullets) {
             if (bullet.isDead) continue;
             for (const enemy of enemies) {
-                if (this.checkAABB(bullet, enemy)) {
+                if (this.checkAABB(bullet, enemy, 0.1)) {
                     enemy.takeDamage(bullet.damage || 1, this);
+                    this.onEnemyHit();
                     bullet.isDead = true; // Destroy bullet
                     break;
                 }
@@ -272,12 +275,17 @@ export class GameEngine {
         }
     }
 
-    checkAABB(a, b) {
+    checkAABB(a, b, inset = 0) {
+        const aInsetX = a.width * inset;
+        const aInsetY = a.height * inset;
+        const bInsetX = b.width * inset;
+        const bInsetY = b.height * inset;
+
         return (
-            a.x < b.x + b.width &&
-            a.x + a.width > b.x &&
-            a.y < b.y + b.height &&
-            a.y + a.height > b.y
+            a.x + aInsetX < b.x + b.width - bInsetX &&
+            a.x + a.width - aInsetX > b.x + bInsetX &&
+            a.y + aInsetY < b.y + b.height - bInsetY &&
+            a.y + a.height - aInsetY > b.y + bInsetY
         );
     }
 

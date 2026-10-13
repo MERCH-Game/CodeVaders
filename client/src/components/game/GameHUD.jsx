@@ -1,6 +1,6 @@
 import menuIcon from '../../assets/icons/menu.png'
 
-export default function GameHUD({ time, lives, onMenuClick }) {
+export default function GameHUD({ score, lives, onMenuClick }) {
   return (
     <div className="flex flex-row items-center justify-between w-full p-4 bg-arcade-panel/80 border-b-2 border-arcade-purple/50 backdrop-blur-sm z-20">
       
@@ -14,9 +14,9 @@ export default function GameHUD({ time, lives, onMenuClick }) {
       </div>
 
       <div className="flex flex-col items-center">
-        <span className="font-pixel text-[8px] text-arcade-pink mb-1 uppercase tracking-wider">Time</span>
+        <span className="font-pixel text-[8px] text-arcade-pink mb-1 uppercase tracking-wider">Score</span>
         <span className="font-pixel text-[12px] text-white">
-          {time}
+          {score}
         </span>
       </div>
 

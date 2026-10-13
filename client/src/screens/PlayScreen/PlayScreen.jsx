@@ -25,6 +25,7 @@ import { GameEngine } from '../../game/GameEngine.js'
 import { EnemySpawner } from '../../game/EnemySpawner.js'
 import { PowerUpSpawner } from '../../game/PowerUpSpawner.js'
 import { useMusic } from '../../components/arcade/ArcadeShell.jsx'
+import { enemyHitSound, powerUpPickupSound } from '../../assets/assets.js'
 
 import GameHUD from '../../components/game/GameHUD.jsx'
 
@@ -34,6 +35,13 @@ import unmuteIcon from '../../assets/icons/unmute.png'
 import homeIcon from '../../assets/icons/home.png'
 import moveLeftIcon from '../../assets/icons/move_left.png'
 import moveRightIcon from '../../assets/icons/move_right.png'
+
+function playGameSound(source) {
+  const sound = new window.Audio(source)
+  sound.play().catch(error => {
+    console.error('Failed to play game sound:', error)
+  })
+}
 
 export default function PlayScreen({ onFinish }) {
   const [isPaused, setIsPaused] = useState(false)
@@ -47,6 +55,10 @@ export default function PlayScreen({ onFinish }) {
   const playerPositionRef = useRef(playerPosition)
   const [lives, setLives] = useState(3)
   const livesRef = useRef(3)
+  // Keep elapsed seconds available for the future backend score payload.
+  const [score, setScore] = useState(0)
+  const elapsedTimeRef = useRef(0)
+  const elapsedSegmentStartRef = useRef(null)
   const [isPlayerHit, setIsPlayerHit] = useState(false)
   const playerHitTimerRef = useRef(null)
   const [isPlayerDestroyed, setIsPlayerDestroyed] = useState(false)
@@ -56,6 +68,23 @@ export default function PlayScreen({ onFinish }) {
   const canvasRef = useRef(null)
   const engineRef = useRef(null)
   const gameScreenRef = useRef(null)
+
+  useEffect(() => {
+    if (isPaused || isPlayerDestroyed) return undefined
+
+    elapsedSegmentStartRef.current = performance.now()
+    const timer = window.setInterval(() => {
+      const elapsedMilliseconds = elapsedTimeRef.current
+        + performance.now() - elapsedSegmentStartRef.current
+      setScore(Math.floor(elapsedMilliseconds / 1000))
+    }, 250)
+
+    return () => {
+      window.clearInterval(timer)
+      elapsedTimeRef.current += performance.now() - elapsedSegmentStartRef.current
+      elapsedSegmentStartRef.current = null
+    }
+  }, [isPaused, isPlayerDestroyed])
 
   const getHorizontalBounds = (playfieldWidth, playerWidth) => {
     if (!playfieldWidth || !playerRef.current) return { left: 0, right: 100 }
@@ -141,12 +170,12 @@ export default function PlayScreen({ onFinish }) {
     if (!isPlayerDestroyed) return
 
     const nextFrameTimer = window.setTimeout(() => setDestructionFrame(1), 900)
-    const finishTimer = window.setTimeout(onFinish, 1400)
+    const finishTimer = window.setTimeout(() => onFinish(score), 1400)
     return () => {
       window.clearTimeout(nextFrameTimer)
       window.clearTimeout(finishTimer)
     }
-  }, [isPlayerDestroyed, onFinish])
+  }, [isPlayerDestroyed, onFinish, score])
 
   useEffect(() => {
     if (engineRef.current) syncPlayerPosition(engineRef.current)
@@ -217,7 +246,10 @@ export default function PlayScreen({ onFinish }) {
               engineRef.current?.stop();
               stopMoving();
             }
-        }, setPowerUps, () => setPowerUpGlowKey(key => key + 1), () => {
+        }, setPowerUps, () => {
+          setPowerUpGlowKey(key => key + 1)
+          playGameSound(powerUpPickupSound)
+        }, () => {
           gameScreenRef.current?.animate([
             { transform: 'translate(0, 0)' },
             { transform: 'translate(-3px, 2px)' },
@@ -226,7 +258,7 @@ export default function PlayScreen({ onFinish }) {
             { transform: 'translate(2px, 1px)' },
             { transform: 'translate(0, 0)' },
           ], { duration: 320, easing: 'ease-out' });
-        });
+        }, () => playGameSound(enemyHitSound));
 
         engine.autoAimImages = images;
         engine.images = images;
@@ -273,11 +305,10 @@ export default function PlayScreen({ onFinish }) {
     }
   }, [isPaused]);
 
-
   return (
     <div ref={gameScreenRef} className="flex flex-col w-full h-full relative select-none">
       {/* HUD (Top) */}
-      <GameHUD time="00:42" lives={lives} onMenuClick={() => setIsPaused(true)} />
+      <GameHUD score={score} lives={lives} onMenuClick={() => setIsPaused(true)} />
 
       {/* Playfield (Middle) */}
       <div ref={playfieldRef} className="flex-1 relative w-full overflow-hidden flex flex-col items-center justify-center touch-none select-none">
@@ -399,7 +430,7 @@ export default function PlayScreen({ onFinish }) {
                 className="flex items-center justify-between group hover:bg-white/5 p-2 -mx-2 rounded transition-colors select-none"
               >
                 <span className="font-pixel text-sm text-white group-hover:text-arcade-pink transition-colors uppercase">
-                  {isMuted ? "Unmute Sound" : "Mute Sound"}
+                  {isMuted ? "Unmute Background Music" : "Mute Background Music"}
                 </span>
                 <div className="w-8 h-8 group-hover:scale-110 transition-transform">
                   <img src={isMuted ? muteIcon : unmuteIcon} alt="Toggle Sound" draggable="false" className="w-full h-full object-contain pointer-events-none select-none" />
@@ -408,7 +439,7 @@ export default function PlayScreen({ onFinish }) {
               
               {/* End Session */}
               <button 
-                onClick={onFinish}
+                onClick={() => onFinish(score)}
                 className="flex items-center justify-between group mt-4 hover:bg-white/5 p-2 -mx-2 rounded transition-colors select-none"
               >
                 <span className="font-pixel text-sm text-arcade-red group-hover:text-red-400 transition-colors uppercase drop-shadow-[0_0_5px_rgba(255,59,78,0.5)]">

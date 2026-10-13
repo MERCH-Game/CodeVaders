@@ -535,4 +535,3 @@ export class WormBug {
         ctx.restore();
     }
 }
-
