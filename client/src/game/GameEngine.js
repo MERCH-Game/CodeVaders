@@ -79,6 +79,13 @@ export class GameEngine {
         this.playerShooter = { x, y, width, height, centerX: x + width / 2 };
     }
 
+    setPlayerCenterX(centerX) {
+        if (!this.playerShooter) return;
+
+        this.playerShooter.centerX = centerX;
+        this.playerShooter.x = centerX - this.playerShooter.width / 2;
+    }
+
     consumePowerUp(index) {
         if (index < 0 || index >= this.powerUps.length) return;
 
@@ -169,7 +176,9 @@ export class GameEngine {
         }
 
         // Update all entities
-        for (let i = this.entities.length - 1; i >= 0; i--) {
+        const entityCount = this.entities.length;
+        let activeEntityCount = 0;
+        for (let i = 0; i < entityCount; i++) {
             const entity = this.entities[i];
             if (entity.update) {
                 const shouldFreeze = this.autoAimActive && (
@@ -182,10 +191,16 @@ export class GameEngine {
                     entity.update(entityDt, this);
                 }
             }
-            if (entity.isDead) {
-                this.entities.splice(i, 1);
+            if (!entity.isDead) {
+                this.entities[activeEntityCount] = entity;
+                activeEntityCount++;
             }
         }
+        const newlyAddedEntities = this.entities.length > entityCount
+            ? this.entities.slice(entityCount)
+            : null;
+        this.entities.length = activeEntityCount;
+        if (newlyAddedEntities) this.entities.push(...newlyAddedEntities);
 
         // Simple AABB Collision Detection
         this.handleCollisions();

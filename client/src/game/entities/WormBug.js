@@ -269,6 +269,7 @@ export class WormBug {
         
         const head = this.getHeadKinematics(this.animTime);
         const anchor = this.getStationaryHeadAnchor();
+        let trailIndex = this.trail.length - 1;
         
         // Coil blend factor: 0 when u < 0.65, easing smoothly to 1.0 at u = 1.0
         const coilRaw = head.u < 0.65 ? 0 : (head.u - 0.65) / 0.35;
@@ -286,16 +287,11 @@ export class WormBug {
                 sx = head.x - head.tx * off;
                 sy = head.y - head.ty * off;
             } else {
-                // Search trail backwards
-                let p0 = this.trail[0];
-                let p1 = this.trail[1];
-                for (let i = this.trail.length - 1; i >= 1; i--) {
-                    if (this.trail[i - 1].dist <= targetDist && targetDist <= this.trail[i].dist) {
-                        p0 = this.trail[i - 1];
-                        p1 = this.trail[i];
-                        break;
-                    }
+                while (trailIndex > 1 && this.trail[trailIndex - 1].dist > targetDist) {
+                    trailIndex--;
                 }
+                const p0 = this.trail[trailIndex - 1];
+                const p1 = this.trail[trailIndex];
                 const segDist = p1.dist - p0.dist;
                 const frac = segDist > 0.0001 ? (targetDist - p0.dist) / segDist : 0;
                 sx = p0.x + (p1.x - p0.x) * frac;

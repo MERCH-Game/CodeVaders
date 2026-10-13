@@ -46,13 +46,13 @@ function playGameSound(source) {
 export default function PlayScreen({ onFinish }) {
   const [isPaused, setIsPaused] = useState(false)
   const { isMuted, toggleMusic } = useMusic()
-  const [playerPosition, setPlayerPosition] = useState(50)
+  const playerPositionRef = useRef(50)
   const playfieldRef = useRef(null)
   const playerRef = useRef(null)
   const directionRef = useRef(0)
   const movementFrame = useRef(null)
   const previousFrameTime = useRef(null)
-  const playerPositionRef = useRef(playerPosition)
+  const movementMetricsRef = useRef(null)
   const [lives, setLives] = useState(3)
   const livesRef = useRef(3)
   // Keep elapsed seconds available for the future backend score payload.
@@ -101,16 +101,18 @@ export default function PlayScreen({ onFinish }) {
 
     if (previousFrameTime.current !== null) {
       const elapsed = Math.min((timestamp - previousFrameTime.current) / 1000, 0.05)
-      const playfieldWidth = playfieldRef.current?.clientWidth ?? 0
-      const playerWidth = playerRef.current?.offsetWidth ?? 0
-      if (playfieldWidth > 0) {
-        const bounds = getHorizontalBounds(playfieldWidth, playerWidth)
+      const metrics = movementMetricsRef.current
+      if (metrics) {
         const nextPosition = playerPositionRef.current
-          + (directionRef.current * 252 * elapsed / playfieldWidth) * 100
-        const boundedPosition = Math.max(bounds.left, Math.min(bounds.right, nextPosition))
+          + (directionRef.current * 252 * elapsed / metrics.playfieldWidth) * 100
+        const boundedPosition = Math.max(metrics.bounds.left, Math.min(metrics.bounds.right, nextPosition))
 
         playerPositionRef.current = boundedPosition
-        setPlayerPosition(boundedPosition)
+        if (playerRef.current) {
+          const offsetX = metrics.playfieldWidth * (boundedPosition - 50) / 100
+          playerRef.current.style.transform = `translate3d(calc(-50% + ${offsetX}px), 0, 0)`
+        }
+        engineRef.current?.setPlayerCenterX(metrics.playfieldWidth * boundedPosition / 100)
       }
     }
 
@@ -122,6 +124,11 @@ export default function PlayScreen({ onFinish }) {
     event.preventDefault()
     if (movementFrame.current !== null) window.cancelAnimationFrame(movementFrame.current)
     event.currentTarget.setPointerCapture(event.pointerId)
+    const playfieldWidth = playfieldRef.current?.clientWidth ?? 0
+    const playerWidth = playerRef.current?.offsetWidth ?? 0
+    movementMetricsRef.current = playfieldWidth > 0
+      ? { playfieldWidth, bounds: getHorizontalBounds(playfieldWidth, playerWidth) }
+      : null
     directionRef.current = direction
     previousFrameTime.current = null
     movementFrame.current = window.requestAnimationFrame(moveFrame)
@@ -144,7 +151,11 @@ export default function PlayScreen({ onFinish }) {
         bounds.left,
         Math.min(bounds.right, playerPositionRef.current + direction * 5),
       )
-      setPlayerPosition(playerPositionRef.current)
+      if (playerRef.current) {
+        const offsetX = playfieldWidth * (playerPositionRef.current - 50) / 100
+        playerRef.current.style.transform = `translate3d(calc(-50% + ${offsetX}px), 0, 0)`
+      }
+      engineRef.current?.setPlayerCenterX(playfieldWidth * playerPositionRef.current / 100)
     }
   }
 
@@ -176,10 +187,6 @@ export default function PlayScreen({ onFinish }) {
       window.clearTimeout(finishTimer)
     }
   }, [isPlayerDestroyed, onFinish, score])
-
-  useEffect(() => {
-    if (engineRef.current) syncPlayerPosition(engineRef.current)
-  }, [playerPosition])
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -316,7 +323,7 @@ export default function PlayScreen({ onFinish }) {
         <div
           ref={playerRef}
           className="absolute bottom-24 w-[3em] pointer-events-none select-none"
-          style={{ left: `${playerPosition}%`, transform: 'translateX(-50%)' }}
+          style={{ left: '50%', transform: 'translateX(-50%)' }}
         >
           <img src={isPlayerHit ? playerHit : isPlayerDestroyed ? (destructionFrame === 0 ? player2 : player3) : playerLinux} alt="Player character" draggable="false" className="w-full object-contain drop-shadow-[0_0_15px_rgba(59,130,255,0.7)] select-none pointer-events-none" />
         </div>
