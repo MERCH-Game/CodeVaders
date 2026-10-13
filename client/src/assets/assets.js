@@ -19,11 +19,14 @@ import sample2Btn  from './images/sample2btn.png'
 // Images — Enemy Sprites
 import commonBug       from './images/common_bug.png'
 import commonBugBlast  from './images/common_bug_blast.png'
+import commonBugBullet from './images/common_bug_bullet.png'
 import criticalBug     from './images/critical_bug.png'
 import criticalBugBlast from './images/critical_bug_blast.png'
 import ddosBug         from './images/ddos_bug.png'
 import ddosOrb         from './images/ddos_orb.png'
 import wormBug         from './images/worm_bug.png'
+import wormBugFace     from './images/worm_bug_face.png'
+import wormBugSegment  from './images/worm_bug_segment.png'
 
 // ---------------------------------------------------------------------------
 // Audio — Game SFX & Music
@@ -50,11 +53,14 @@ export const Images = {
   sample2Btn,
   commonBug,
   commonBugBlast,
+  commonBugBullet,
   criticalBug,
   criticalBugBlast,
   ddosBug,
   ddosOrb,
   wormBug,
+  wormBugFace,
+  wormBugSegment,
 }
 
 export const Audio = {
@@ -72,7 +78,8 @@ export const Audio = {
 export {
   // Images
   acLogo, acName, bg, gameLogo, hero, playerLinux, sample1Btn, sample2Btn,
-  commonBug, commonBugBlast, criticalBug, criticalBugBlast, ddosBug, ddosOrb, wormBug,
+  commonBug, commonBugBlast, commonBugBullet, criticalBug, criticalBugBlast, ddosBug, ddosOrb, wormBug,
+  wormBugFace, wormBugSegment,
   // Audio
   buttonSound, defeatSound, enemyHitSound, bgMusic, gameOverSound,
   playerHitSound, pythonPowerup,

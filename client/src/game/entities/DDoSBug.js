@@ -125,6 +125,7 @@ export class DDoSBug {
         this.hp -= amount;
         if (this.hp <= 0) {
             this.hp = 0;
+            if (engine.autoAimActive) this.hasSplit = true;
             this.state = 'DYING';
         }
     }
