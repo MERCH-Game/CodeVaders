@@ -10,6 +10,7 @@ export class GameEngine {
         onPowerUpCollected = () => {},
         onLaserFired = () => {},
         onEnemyHit = () => {},
+        onRocketLaunched = () => {},
     ) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
@@ -29,6 +30,7 @@ export class GameEngine {
         this.onPowerUpCollected = onPowerUpCollected;
         this.onLaserFired = onLaserFired;
         this.onEnemyHit = onEnemyHit;
+        this.onRocketLaunched = onRocketLaunched;
         this.powerUps = [];
         this.spawner = null;
         this.powerUpSpawner = null;
@@ -119,6 +121,7 @@ export class GameEngine {
                 const player = this.playerShooter;
                 if (player) {
                     this.addEntity(new AutoAimMissile(player.centerX, player.y, target, this.autoAimImages));
+                    this.onRocketLaunched();
                     return;
                 }
             }

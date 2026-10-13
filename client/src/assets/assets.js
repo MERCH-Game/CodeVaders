@@ -38,6 +38,8 @@ import bgMusic          from './audio/bg_music.mp3'
 import gameOverSound    from './audio/game_over.mp3'
 import pythonPowerup    from './audio/python_powerup.mp3'
 import powerUpPickupSound from './audio/floraphonic-arcade-ui-6-229503.mp3'
+import rocketSound from './audio/rocket.mp3'
+import laserSound from './audio/laser.mp3'
 
 // ---------------------------------------------------------------------------
 // Named exports — grouped for easy tree-shaking
@@ -72,6 +74,8 @@ export const Audio = {
   gameOverSound,
   pythonPowerup,
   powerUpPickupSound,
+  rocketSound,
+  laserSound,
 }
 
 // Flat named exports (for direct destructuring)
@@ -82,5 +86,5 @@ export {
   wormBugFace, wormBugSegment,
   // Audio
   buttonSound, defeatSound, enemyHitSound, bgMusic, gameOverSound,
-  pythonPowerup, powerUpPickupSound,
+  pythonPowerup, powerUpPickupSound, rocketSound, laserSound,
 }

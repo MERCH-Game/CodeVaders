@@ -25,7 +25,7 @@ import { GameEngine } from '../../game/GameEngine.js'
 import { EnemySpawner } from '../../game/EnemySpawner.js'
 import { PowerUpSpawner } from '../../game/PowerUpSpawner.js'
 import { useMusic } from '../../components/arcade/ArcadeShell.jsx'
-import { enemyHitSound, powerUpPickupSound } from '../../assets/assets.js'
+import { enemyHitSound, laserSound, powerUpPickupSound, rocketSound } from '../../assets/assets.js'
 
 import GameHUD from '../../components/game/GameHUD.jsx'
 
@@ -257,6 +257,7 @@ export default function PlayScreen({ onFinish }) {
           setPowerUpGlowKey(key => key + 1)
           playGameSound(powerUpPickupSound)
         }, () => {
+          playGameSound(laserSound)
           gameScreenRef.current?.animate([
             { transform: 'translate(0, 0)' },
             { transform: 'translate(-3px, 2px)' },
@@ -265,7 +266,7 @@ export default function PlayScreen({ onFinish }) {
             { transform: 'translate(2px, 1px)' },
             { transform: 'translate(0, 0)' },
           ], { duration: 320, easing: 'ease-out' });
-        }, () => playGameSound(enemyHitSound));
+        }, () => playGameSound(enemyHitSound), () => playGameSound(rocketSound));
 
         engine.autoAimImages = images;
         engine.images = images;
