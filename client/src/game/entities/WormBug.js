@@ -30,7 +30,7 @@ export const WORM_BUG_CONFIG = {
 };
 
 export class WormBug {
-    constructor(startX, startY, targetX, targetY, imageAssets, direction = 1) {
+    constructor(startX, startY, targetX, targetY, imageAssets, direction = 1, options = {}) {
         this.type = 'enemy';
         this.id = 'worm_' + Math.random().toString(36).substring(7);
         this.startX = startX;
@@ -43,6 +43,10 @@ export class WormBug {
         this.height = WORM_BUG_CONFIG.height;
         this.hp = WORM_BUG_CONFIG.hp;
         
+        // Multipliers from difficulty controller
+        this.speedMultiplier = options.speedMultiplier || 1.0;
+        this.fireRateMultiplier = options.fireRateMultiplier || 1.0;
+
         // Direction: 1 = Left to Right entry, -1 = Right to Left entry
         this.direction = direction;
         this.facing = direction; // 1 = facing right (default asset), -1 = facing left (flipped)
@@ -228,17 +232,17 @@ export class WormBug {
                 const perpX = -dirY * wave;
                 const perpY = dirX * wave;
                 
-                this.x += (dirX * WORM_BUG_CONFIG.approachSpeed + perpX) * dt;
-                this.y += (dirY * WORM_BUG_CONFIG.approachSpeed + perpY) * dt;
+                this.x += (dirX * WORM_BUG_CONFIG.approachSpeed * this.speedMultiplier + perpX) * dt;
+                this.y += (dirY * WORM_BUG_CONFIG.approachSpeed * this.speedMultiplier + perpY) * dt;
             } else {
-                this.y += WORM_BUG_CONFIG.approachSpeed * dt;
+                this.y += WORM_BUG_CONFIG.approachSpeed * this.speedMultiplier * dt;
             }
             
             // Keep inside reasonable horizontal boundaries
             this.x = Math.max(8, Math.min(engine.width - this.width - 8, this.x));
             
             // Shooting logic
-            this.shootTimer += dt;
+            this.shootTimer += dt * this.fireRateMultiplier;
             if (this.shootTimer >= WORM_BUG_CONFIG.fireRate) {
                 this.shootTimer = 0;
                 this.shoot(engine);
@@ -337,6 +341,7 @@ export class WormBug {
     }
 
     shoot(engine) {
+        if (engine && engine.canEnemyShoot && !engine.canEnemyShoot()) return;
         const bulletX = this.x + this.width / 2 - 3;
         const bulletY = this.y + this.height;
         

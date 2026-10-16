@@ -11,14 +11,18 @@ export class GameEngine {
         onLaserFired = () => {},
         onEnemyHit = () => {},
         onRocketLaunched = () => {},
+        onTimeUpdate = () => {},
     ) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.entities = [];
         this.lastTime = 0;
+        this.elapsedTime = 0;
+        this._lastReportedSec = -1;
         this.width = canvas.width;
         this.height = canvas.height;
         this.isRunning = false;
+        this.devMode = false;
         this._originalOnPlayerHit = onPlayerHit;
         this.playerHitThisFrame = false;
         this.onPlayerHit = () => {
@@ -31,6 +35,7 @@ export class GameEngine {
         this.onLaserFired = onLaserFired;
         this.onEnemyHit = onEnemyHit;
         this.onRocketLaunched = onRocketLaunched;
+        this.onTimeUpdate = onTimeUpdate;
         this.powerUps = [];
         this.spawner = null;
         this.powerUpSpawner = null;
@@ -50,6 +55,31 @@ export class GameEngine {
 
     setPowerUpSpawner(spawner) {
         this.powerUpSpawner = spawner;
+    }
+
+    getDifficultyController() {
+        return this.spawner?.difficultyController || null;
+    }
+
+    getElapsedTime() {
+        if (this.spawner?.difficultyController) {
+            return this.spawner.difficultyController.getElapsedTime();
+        }
+        return this.elapsedTime;
+    }
+
+    getActiveEnemyCount() {
+        return this.entities.filter(
+            e => e.type === 'enemy' && !e.isDead && e.state !== 'DYING' && e.state !== 'DEAD'
+        ).length;
+    }
+
+    getActiveEnemyBulletCount() {
+        return this.entities.filter(e => e.type === 'enemy_bullet' && !e.isDead).length;
+    }
+
+    canEnemyShoot() {
+        return this.getActiveEnemyBulletCount() < 20;
     }
 
     start() {
@@ -176,6 +206,15 @@ export class GameEngine {
         }
         if (this.powerUpSpawner && this.powerUpSpawner.update) {
             this.powerUpSpawner.update(dt, this);
+        }
+
+        this.elapsedTime += dt;
+        const currentSec = Math.floor(this.getElapsedTime());
+        if (currentSec !== this._lastReportedSec) {
+            this._lastReportedSec = currentSec;
+            if (this.onTimeUpdate) {
+                this.onTimeUpdate(currentSec);
+            }
         }
 
         // Update all entities
@@ -325,5 +364,36 @@ export class GameEngine {
             this.ctx.fillText('AUTO AIM', this.width / 2, 12);
             this.ctx.restore();
         }
+
+        if (this.devMode || (typeof window !== 'undefined' && (window.__CODEVADERS_DEV_MODE__ || window.location?.search?.includes('debug')))) {
+            this.renderDevDiagnostics();
+        }
+    }
+
+    renderDevDiagnostics() {
+        const controller = this.getDifficultyController();
+        if (!controller) return;
+        const diag = controller.getDiagnostics(this.getActiveEnemyCount());
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
+        ctx.strokeStyle = '#00f3ff';
+        ctx.lineWidth = 1;
+        ctx.fillRect(8, 8, 220, 114);
+        ctx.strokeRect(8, 8, 220, 114);
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#00f3ff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('[DEV DIAGNOSTICS]', 14, 14);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`Time: ${diag.elapsedTime}s | P${diag.phaseId}: ${diag.phaseName}`, 14, 28);
+        ctx.fillText(`Enemies: ${diag.activeEnemies} | Bullets: ${this.getActiveEnemyBulletCount()}/20`, 14, 42);
+        ctx.fillText(`Interval: ${diag.spawnInterval}`, 14, 56);
+        ctx.fillText(`Speed: ${diag.speedMultiplier} | Fire: ${diag.fireRateMultiplier}`, 14, 70);
+        ctx.fillText(`Next Evt: ${diag.nextEventIn}`, 14, 84);
+        ctx.fillText(`Recovery: ${diag.isRecoveryActive ? `ACTIVE (${diag.recoveryRemaining})` : 'OFF'}`, 14, 98);
+        ctx.restore();
     }
 }

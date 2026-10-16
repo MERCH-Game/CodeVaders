@@ -12,7 +12,7 @@ export const DDOS_BUG_CONFIG = {
 };
 
 export class DDoSBug {
-    constructor(x, y, imageAssets) {
+    constructor(x, y, imageAssets, options = {}) {
         this.type = 'enemy';
         this.id = 'ddos_' + Math.random().toString(36).substring(7);
         this.x = x;
@@ -24,8 +24,10 @@ export class DDoSBug {
         this.state = 'MOVING'; // MOVING, DYING, DEAD
         this.isFormationMember = false;
         
-        this.velocityX = (Math.random() > 0.5 ? 1 : -1) * DDOS_BUG_CONFIG.speedX;
-        this.velocityY = DDOS_BUG_CONFIG.speedY;
+        this.speedMultiplier = options.speedMultiplier || 1.0;
+        this.fireRateMultiplier = options.fireRateMultiplier || 1.0;
+        this.velocityX = (Math.random() > 0.5 ? 1 : -1) * DDOS_BUG_CONFIG.speedX * this.speedMultiplier;
+        this.velocityY = DDOS_BUG_CONFIG.speedY * this.speedMultiplier;
         
         this.isDead = false;
         

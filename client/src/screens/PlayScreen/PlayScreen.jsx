@@ -36,13 +36,6 @@ import homeIcon from '../../assets/icons/home.png'
 import moveLeftIcon from '../../assets/icons/move_left.png'
 import moveRightIcon from '../../assets/icons/move_right.png'
 
-function playGameSound(source) {
-  const sound = new window.Audio(source)
-  sound.play().catch(error => {
-    console.error('Failed to play game sound:', error)
-  })
-}
-
 export default function PlayScreen({ onFinish }) {
   const [isPaused, setIsPaused] = useState(false)
   const { isMuted, toggleMusic } = useMusic()
@@ -55,10 +48,9 @@ export default function PlayScreen({ onFinish }) {
   const movementMetricsRef = useRef(null)
   const [lives, setLives] = useState(3)
   const livesRef = useRef(3)
-  // Keep elapsed seconds available for the future backend score payload.
+  // Single source of truth: score is strictly elapsed survival time in seconds.
   const [score, setScore] = useState(0)
-  const elapsedTimeRef = useRef(0)
-  const elapsedSegmentStartRef = useRef(null)
+  const lastSoundTimesRef = useRef({})
   const [isPlayerHit, setIsPlayerHit] = useState(false)
   const playerHitTimerRef = useRef(null)
   const [isPlayerDestroyed, setIsPlayerDestroyed] = useState(false)
@@ -69,22 +61,34 @@ export default function PlayScreen({ onFinish }) {
   const engineRef = useRef(null)
   const gameScreenRef = useRef(null)
 
+  const isMutedRef = useRef(isMuted)
   useEffect(() => {
-    if (isPaused || isPlayerDestroyed) return undefined
+    isMutedRef.current = isMuted
+  }, [isMuted])
 
-    elapsedSegmentStartRef.current = performance.now()
-    const timer = window.setInterval(() => {
-      const elapsedMilliseconds = elapsedTimeRef.current
-        + performance.now() - elapsedSegmentStartRef.current
-      setScore(Math.floor(elapsedMilliseconds / 1000))
-    }, 250)
-
-    return () => {
-      window.clearInterval(timer)
-      elapsedTimeRef.current += performance.now() - elapsedSegmentStartRef.current
-      elapsedSegmentStartRef.current = null
+  const playGameSound = React.useCallback((source, minGapMs = 60) => {
+    if (isMutedRef.current) return
+    const now = performance.now()
+    if (lastSoundTimesRef.current[source] && now - lastSoundTimesRef.current[source] < minGapMs) {
+      return
     }
-  }, [isPaused, isPlayerDestroyed])
+    lastSoundTimesRef.current[source] = now
+    const sound = new window.Audio(source)
+    sound.play().catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F2' || e.key === '`') {
+        window.__CODEVADERS_DEV_MODE__ = !window.__CODEVADERS_DEV_MODE__
+        if (engineRef.current) {
+          engineRef.current.devMode = Boolean(window.__CODEVADERS_DEV_MODE__)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const getHorizontalBounds = (playfieldWidth, playerWidth) => {
     if (!playfieldWidth || !playerRef.current) return { left: 0, right: 100 }
@@ -250,6 +254,8 @@ export default function PlayScreen({ onFinish }) {
             setLives(newLives);
             if (newLives === 0) {
               setIsPlayerDestroyed(true);
+              const finalScore = engineRef.current ? Math.floor(engineRef.current.getElapsedTime()) : 0;
+              setScore(finalScore);
               engineRef.current?.stop();
               stopMoving();
             }
@@ -266,7 +272,9 @@ export default function PlayScreen({ onFinish }) {
             { transform: 'translate(2px, 1px)' },
             { transform: 'translate(0, 0)' },
           ], { duration: 320, easing: 'ease-out' });
-        }, () => playGameSound(enemyHitSound), () => playGameSound(rocketSound));
+        }, () => playGameSound(enemyHitSound, 60), () => playGameSound(rocketSound, 80), (timeInSec) => {
+          setScore(timeInSec);
+        });
 
         engine.autoAimImages = images;
         engine.images = images;
@@ -274,7 +282,7 @@ export default function PlayScreen({ onFinish }) {
         engineRef.current = engine;
         syncPlayerPosition(engine);
         
-        // Setup EnemySpawner
+        // Setup EnemySpawner with DifficultyController
         const spawner = new EnemySpawner(images);
         engine.setSpawner(spawner);
         engine.setPowerUpSpawner(new PowerUpSpawner(images));
@@ -301,7 +309,7 @@ export default function PlayScreen({ onFinish }) {
             engineRef.current.stop();
         }
     };
-  }, []);
+  }, [playGameSound]);
 
   useEffect(() => {
     if (engineRef.current) {

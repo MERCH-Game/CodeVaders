@@ -11,7 +11,7 @@ export const CRITICAL_BUG_CONFIG = {
 };
 
 export class CriticalBug {
-    constructor(x, y, imageAssets) {
+    constructor(x, y, imageAssets, options = {}) {
         this.type = 'enemy';
         this.id = 'critical_' + Math.random().toString(36).substring(7);
         this.x = x;
@@ -21,13 +21,15 @@ export class CriticalBug {
         this.hp = CRITICAL_BUG_CONFIG.hp;
         
         this.state = 'MOVING'; // MOVING, DYING, DEAD
+        this.speedMultiplier = options.speedMultiplier || 1.0;
+        this.fireRateMultiplier = options.fireRateMultiplier || 1.0;
         this.velocityX = 0;
-        this.velocityY = 0;
+        this.velocityY = CRITICAL_BUG_CONFIG.speed * this.speedMultiplier;
         this.isDead = false;
         
         this.imageAssets = imageAssets;
-        this.image = imageAssets.criticalBug;
-        this.blastImage = imageAssets.criticalBugBlast;
+        this.image = imageAssets ? imageAssets.criticalBug : null;
+        this.blastImage = imageAssets ? imageAssets.criticalBugBlast : null;
         this.deathTimer = 0;
         
         this.shootTimer = 0;
@@ -42,13 +44,13 @@ export class CriticalBug {
         if (this.state === 'MOVING') {
             // Critical bugs move vertically only
             this.velocityX = 0;
-            this.velocityY = CRITICAL_BUG_CONFIG.speed;
+            this.velocityY = CRITICAL_BUG_CONFIG.speed * this.speedMultiplier;
 
             this.x += this.velocityX * dt;
             this.y += this.velocityY * dt;
             
             // Shooting logic
-            this.shootTimer += dt;
+            this.shootTimer += dt * this.fireRateMultiplier;
             if (this.shootTimer >= CRITICAL_BUG_CONFIG.fireRate) {
                 this.shootTimer = 0;
                 this.shoot(engine);
@@ -69,6 +71,7 @@ export class CriticalBug {
     }
 
     shoot(engine) {
+        if (engine && engine.canEnemyShoot && !engine.canEnemyShoot()) return;
         const bulletX = this.x + this.width / 2 - 3;
         const bulletY = this.y + this.height;
         const bullet = new EnemyProjectile(bulletX, bulletY);

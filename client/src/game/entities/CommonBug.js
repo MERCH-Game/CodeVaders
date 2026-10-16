@@ -11,7 +11,7 @@ export const COMMON_BUG_CONFIG = {
 };
 
 export class CommonBug {
-    constructor(x, y, imageAssets, direction = 1) {
+    constructor(x, y, imageAssets, direction = 1, options = {}) {
         this.type = 'enemy';
         this.id = 'common_' + Math.random().toString(36).substring(7);
         this.x = x;
@@ -24,7 +24,9 @@ export class CommonBug {
         this.isFormationMember = false;
         
         this.direction = direction; // 1 for left-to-right, -1 for right-to-left
-        this.velocityX = this.direction * COMMON_BUG_CONFIG.horizontalSpeed;
+        this.speedMultiplier = options.speedMultiplier || 1.0;
+        this.fireRateMultiplier = options.fireRateMultiplier || 1.0;
+        this.velocityX = this.direction * COMMON_BUG_CONFIG.horizontalSpeed * this.speedMultiplier;
         
         this.isDead = false;
         
@@ -69,7 +71,7 @@ export class CommonBug {
             // Only shoot while on-screen
             const isVisible = this.x >= 10 && (this.x + this.width) <= (engine.width - 10);
             if (isVisible) {
-                this.shootTimer += dt;
+                this.shootTimer += dt * this.fireRateMultiplier;
                 if (this.shootTimer >= COMMON_BUG_CONFIG.fireRate) {
                     this.shootTimer = 0;
                     this.shoot(engine);
@@ -86,6 +88,7 @@ export class CommonBug {
     }
 
     shoot(engine) {
+        if (engine && engine.canEnemyShoot && !engine.canEnemyShoot()) return;
         // Player position is tracked in engine.playerShooter
         const player = engine.playerShooter || engine.entities.find(e => e.type === 'player');
         
