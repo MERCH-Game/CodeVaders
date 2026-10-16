@@ -287,7 +287,7 @@ export default function PlayScreen({ onFinish }) {
         engine.setSpawner(spawner);
         engine.setPowerUpSpawner(new PowerUpSpawner(images));
 
-        engine.start();
+        if (!document.hidden) engine.start();
     };
 
     initEngine();
@@ -313,13 +313,27 @@ export default function PlayScreen({ onFinish }) {
 
   useEffect(() => {
     if (engineRef.current) {
-        if (isPaused) {
+        if (isPaused || isPlayerDestroyed || document.hidden) {
             engineRef.current.stop();
         } else {
             engineRef.current.start();
         }
     }
-  }, [isPaused]);
+  }, [isPaused, isPlayerDestroyed]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        engineRef.current?.stop();
+        stopMoving();
+      } else if (!isPaused && !isPlayerDestroyed) {
+        engineRef.current?.start();
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [isPaused, isPlayerDestroyed])
 
   return (
     <div ref={gameScreenRef} className="flex flex-col w-full h-full relative select-none">

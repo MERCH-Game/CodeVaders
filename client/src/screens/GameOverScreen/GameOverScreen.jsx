@@ -59,7 +59,7 @@ export default function GameOverScreen({ onRestart, onSave, onHome, score = 9999
       <div className="flex flex-row items-center justify-center gap-[6%] w-full shrink-0 px-[4%]">
         <IconButton ariaLabel="Play again" onClick={onRestart} icon={playAgainIcon} className="w-[28%] aspect-square flex items-center justify-center" />
         <IconButton ariaLabel="Save progress" onClick={onSave} icon={saveIcon} className="w-[28%] aspect-square flex items-center justify-center" />
-        <IconButton ariaLabel="Go to home screen" onClick={onHome} icon={homeIcon} className="w-[28%] aspect-square flex items-center justify-center" />
+        <IconButton ariaLabel="Go to home screen" onClick={onHome} icon={homeIcon} className="w-[calc(28%_+_1.19em)] aspect-square flex items-center justify-center" />
       </div>
 
     </div>

@@ -73,9 +73,13 @@ export class EnemySpawner {
 
     getActiveEnemyCount(engine) {
         if (!engine || !engine.entities) return 0;
-        return engine.entities.filter(
-            e => e.type === 'enemy' && !e.isDead && e.state !== 'DYING' && e.state !== 'DEAD'
-        ).length;
+        let count = 0;
+        for (const entity of engine.entities) {
+            if (entity.type === 'enemy' && !entity.isDead && entity.state !== 'DYING' && entity.state !== 'DEAD') {
+                count++;
+            }
+        }
+        return count;
     }
 
     spawnEnemyByType(type, engine, params) {

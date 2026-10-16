@@ -22,7 +22,24 @@ export class GameEngine {
         this.width = canvas.width;
         this.height = canvas.height;
         this.isRunning = false;
+        this.animationFrameId = null;
         this.devMode = false;
+        this.debugDiagnostics = typeof window !== 'undefined' && window.location?.search?.includes('debug');
+        this.performanceStats = {
+            frameTimeMs: 0,
+            fps: 0,
+            updateTimeMs: 0,
+            renderTimeMs: 0,
+        };
+        this.diagnosticFrameCount = 0;
+        this.diagnosticElapsedMs = 0;
+        this.collisionGroups = {
+            enemies: [],
+            playerBullets: [],
+            playerLasers: [],
+            powerUpDrops: [],
+            enemyBullets: [],
+        };
         this._originalOnPlayerHit = onPlayerHit;
         this.playerHitThisFrame = false;
         this.onPlayerHit = () => {
@@ -69,13 +86,21 @@ export class GameEngine {
     }
 
     getActiveEnemyCount() {
-        return this.entities.filter(
-            e => e.type === 'enemy' && !e.isDead && e.state !== 'DYING' && e.state !== 'DEAD'
-        ).length;
+        let count = 0;
+        for (const entity of this.entities) {
+            if (entity.type === 'enemy' && !entity.isDead && entity.state !== 'DYING' && entity.state !== 'DEAD') {
+                count++;
+            }
+        }
+        return count;
     }
 
     getActiveEnemyBulletCount() {
-        return this.entities.filter(e => e.type === 'enemy_bullet' && !e.isDead).length;
+        let count = 0;
+        for (const entity of this.entities) {
+            if (entity.type === 'enemy_bullet' && !entity.isDead) count++;
+        }
+        return count;
     }
 
     canEnemyShoot() {
@@ -91,8 +116,9 @@ export class GameEngine {
 
     stop() {
         this.isRunning = false;
-        if (this.animationFrameId) {
+        if (this.animationFrameId !== null) {
             cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
         }
     }
 
@@ -170,8 +196,25 @@ export class GameEngine {
         // Cap dt to prevent huge jumps if tab is inactive
         const safeDt = Math.min(dt, 0.1);
 
+        const measurePerformance = this.isDiagnosticsEnabled();
+        const updateStartedAt = measurePerformance ? performance.now() : 0;
         this.update(safeDt);
-        this.render();
+        if (measurePerformance) {
+            this.performanceStats.updateTimeMs = performance.now() - updateStartedAt;
+            this.performanceStats.frameTimeMs = dt * 1000;
+            this.diagnosticFrameCount++;
+            this.diagnosticElapsedMs += this.performanceStats.frameTimeMs;
+            if (this.diagnosticElapsedMs >= 500) {
+                this.performanceStats.fps = this.diagnosticFrameCount * 1000 / this.diagnosticElapsedMs;
+                this.diagnosticFrameCount = 0;
+                this.diagnosticElapsedMs = 0;
+            }
+            const renderStartedAt = performance.now();
+            this.render();
+            this.performanceStats.renderTimeMs = performance.now() - renderStartedAt;
+        } else {
+            this.render();
+        }
 
         this.animationFrameId = requestAnimationFrame((t) => this.loop(t));
     }
@@ -251,12 +294,28 @@ export class GameEngine {
     handleCollisions() {
         this.playerHitThisFrame = false;
 
-        const enemies = this.entities.filter(e => e.type === 'enemy');
+        const {
+            enemies,
+            playerBullets,
+            playerLasers,
+            powerUpDrops,
+            enemyBullets,
+        } = this.collisionGroups;
+        enemies.length = 0;
+        playerBullets.length = 0;
+        playerLasers.length = 0;
+        powerUpDrops.length = 0;
+        enemyBullets.length = 0;
+
+        for (const entity of this.entities) {
+            if (entity.type === 'enemy') enemies.push(entity);
+            else if (entity.type === 'player_bullet') playerBullets.push(entity);
+            else if (entity.type === 'player_laser') playerLasers.push(entity);
+            else if (entity.type === 'power_up') powerUpDrops.push(entity);
+            else if (entity.type === 'enemy_bullet') enemyBullets.push(entity);
+        }
+
         const player = this.playerShooter;
-        const playerBullets = this.entities.filter(e => e.type === 'player_bullet');
-        const playerLasers = this.entities.filter(e => e.type === 'player_laser');
-        const powerUpDrops = this.entities.filter(e => e.type === 'power_up');
-        const enemyBullets = this.entities.filter(e => e.type === 'enemy_bullet');
 
         // PlayerBullets vs EnemyBullets
         for (const pBullet of playerBullets) {
@@ -365,9 +424,14 @@ export class GameEngine {
             this.ctx.restore();
         }
 
-        if (this.devMode || (typeof window !== 'undefined' && (window.__CODEVADERS_DEV_MODE__ || window.location?.search?.includes('debug')))) {
+        if (this.isDiagnosticsEnabled()) {
             this.renderDevDiagnostics();
         }
+    }
+
+    isDiagnosticsEnabled() {
+        return this.devMode || this.debugDiagnostics
+            || (typeof window !== 'undefined' && Boolean(window.__CODEVADERS_DEV_MODE__));
     }
 
     renderDevDiagnostics() {
@@ -379,8 +443,8 @@ export class GameEngine {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
         ctx.strokeStyle = '#00f3ff';
         ctx.lineWidth = 1;
-        ctx.fillRect(8, 8, 220, 114);
-        ctx.strokeRect(8, 8, 220, 114);
+        ctx.fillRect(8, 8, 250, 142);
+        ctx.strokeRect(8, 8, 250, 142);
 
         ctx.font = '10px monospace';
         ctx.fillStyle = '#00f3ff';
@@ -394,6 +458,8 @@ export class GameEngine {
         ctx.fillText(`Speed: ${diag.speedMultiplier} | Fire: ${diag.fireRateMultiplier}`, 14, 70);
         ctx.fillText(`Next Evt: ${diag.nextEventIn}`, 14, 84);
         ctx.fillText(`Recovery: ${diag.isRecoveryActive ? `ACTIVE (${diag.recoveryRemaining})` : 'OFF'}`, 14, 98);
+        ctx.fillText(`Frame: ${this.performanceStats.frameTimeMs.toFixed(1)}ms | FPS: ${this.performanceStats.fps.toFixed(0)}`, 14, 112);
+        ctx.fillText(`Update: ${this.performanceStats.updateTimeMs.toFixed(1)}ms | Render: ${this.performanceStats.renderTimeMs.toFixed(1)}ms`, 14, 126);
         ctx.restore();
     }
 }
